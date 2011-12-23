@@ -2,7 +2,7 @@
 	"name" : "musicme-server",
 	"version" : "0.0.1",
 	"main" : "musicme-server.js",
-	"author" : "Luke Channings 2011",
+	"author" : "Luke Channings",
 	"engines" : {
 		"node" : ">= 0.6.6"
 	},

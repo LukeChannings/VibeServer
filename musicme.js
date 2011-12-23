@@ -3,6 +3,7 @@ var sqlite = this.sqlite = require('sqlite3');
 var musicmetadata = require("musicmetadata");
 var fs = require("fs");
 var walk = require('walk');
+var crypto = require("crypto");
 
 // Constructor.
 var MusicMe = function(callback){
@@ -52,11 +53,12 @@ MusicMe.prototype.createDatabaseSchema = function(callback){
 		db.run("CREATE TABLE IF NOT EXISTS settings (id VARCHAR(100), setting VARCHAR(255))");
 		
 		// Create albums.
-		db.run("CREATE TABLE IF NOT EXISTS albums(album_artist VARCHAR(255), tracks INT(100), year INT(6), genre VARCHAR(255), art VARCHAR(255))");
+		db.run("CREATE TABLE IF NOT EXISTS albums(album VARCHAR(255) PRIMARY KEY, album_artist VARCHAR(255), tracks INT(100), year INT(6), genre VARCHAR(255), art VARCHAR(255))");
 		
 		// Create tracks.
-		db.run("CREATE TABLE IF NOT EXISTS tracks(title VARCHAR(255), length VARCHAR(50), artist VARCHAR(255), album VARCHAR(255), bitrate VARCHAR(50))",function(){
+		db.run("CREATE TABLE IF NOT EXISTS tracks(title VARCHAR(255), artist VARCHAR(255), album VARCHAR(255), trackno INT(2), path VARCHAR(255))",function(){
 		
+			// When the SQL statements have finished, execute the callback.
 			callback();
 		
 		});
@@ -127,14 +129,60 @@ MusicMe.prototype.walkCollection = function(callback){
  * @variable paths - array of paths to get the metadata for.
  * @variable callback - function to execute when finished, passed an array of metadata objects.
  */
-MusicMe.prototype.getMetadata = function(path,callback){
+MusicMe.prototype.getMetadata = function(path, callback, next){
 	
 	var parser = new musicmetadata(fs.createReadStream(path));
 	
-	parser.on('done',function(metadata){
+	parser.on('metadata',function(metadata){
 		
 		callback(metadata);
 		
+	});
+	
+	parser.on('done',function(err){
+		
+		if ( err ) console.log(err);
+		
+		parser = null;
+		
+		next();
+		
+	});
+
+}
+
+/**
+ * addTrackToCollection
+ * @description Adds the current track to the database.
+ */
+MusicMe.prototype.addTrackToCollection = function(data,path){
+	
+	var albumartist = ( !data.albumartist || data.albumartist.length == 0 ) ? data.artist : data.albumartist;
+	
+	var db = this.db;
+	
+	db.serialize(function(){
+		
+		// Add the album to the collection.
+		db.run("INSERT OR IGNORE INTO albums (album, album_artist, tracks, year, genre) VALUES(?,?,?,?,?)", {
+			
+			1: data.album,
+			2: albumartist,
+			3: data.track.of,
+			4: data.year,
+			5: data.genre
+			
+		});
+		
+		// Add the track to the collection.
+		db.run("INSERT INTO tracks (title, artist, album, trackno,path) VALUES(?,?,?,?,?)",{
+			1: data.title,
+			2: data.artist,
+			3: data.album,
+			4: data.track.of,
+			5: path
+		});
+	
 	});
 }
 
@@ -147,14 +195,59 @@ new MusicMe(function controller(){
 	// Walk the collection and build a list of audio files.
 	self.walkCollection(function finishedWalking(paths){
 		
-		for ( var i = 0; i < 3; i++ )
+		// Generate checksum.
+		var checksum = crypto.createHash('md5').update(paths.join('')).digest('hex');
+		
+		if ( self.collection_checksum == checksum )
 		{
-			// hand the array of audio files to getMetadata.
-			self.getMetadata((self.collection_path + paths[i]).replace(" ", "\ "),function(metadata){
+			console.log("The collection has not changed.");
+		}
+		else
+		{
 			
-				console.log(metadata);
+			// Truncate albums.
+			self.db.run("DELETE FROM albums");
 			
-			});
+			// Truncate tracks.
+			self.db.run("DELETE FROM tracks");
+			
+			
+			function fetchedAllMetadata(){
+			
+				console.log("Oh yeah, that's right, it's business time.");
+				
+				self.db.close(); // Business hours are over, baby.
+				
+			}
+			
+			// Mouse wheel.
+			(function loopTracks(i){
+			
+				if ( paths.length+1 !== i )
+				{
+					// Get the metadata for the current path.
+					self.getMetadata(self.collection_path + paths[i],function(data){
+					
+						console.log("Scanning " + i + " of " + paths.length + " (" + Math.floor((i/paths.length)*100) + "%)");
+						
+						// Pass the path 
+						self.addTrackToCollection(data,paths[i]);
+						
+					},function(){
+					
+						loopTracks(i + 1);
+						
+					});
+					
+				} else {
+			
+					// We've run out of paths. Run the callback?
+					fetchedAllMetadata(); // How many bloody callbacks are there, anyway?!?
+				
+				}
+			
+			})(0);
+		
 		}
 	});
 
