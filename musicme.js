@@ -40,6 +40,30 @@ var MusicMe = function(callback){
 }
 
 /**
+ * createDatabaseSchema
+ */
+MusicMe.prototype.createDatabaseSchema = function(callback){
+
+	var db = this.db;
+	
+	db.serialize(function(){
+	
+		// Create settings.
+		db.run("CREATE TABLE IF NOT EXISTS settings (id VARCHAR(100), setting VARCHAR(255))");
+		
+		// Create albums.
+		db.run("CREATE TABLE IF NOT EXISTS albums(album_artist VARCHAR(255), tracks INT(100), year INT(6), genre VARCHAR(255), art VARCHAR(255))");
+		
+		// Create tracks.
+		db.run("CREATE TABLE IF NOT EXISTS tracks(title VARCHAR(255), length VARCHAR(50), artist VARCHAR(255), album VARCHAR(255), bitrate VARCHAR(50))");
+		
+		callback();
+		
+	});
+	
+}
+
+/**
  * walkCollection
  * @description Walks the collection_path and looks for audio files.
  * @variable callback - function to be executed on completion, will be passed the array.
@@ -47,7 +71,18 @@ var MusicMe = function(callback){
 MusicMe.prototype.walkCollection = function(callback){
 	
 	// Make sure there is a path.
-	if ( !this.collection_path ) throw 'There is no collection path. Fail.';
+	if ( !this.collection_path ){
+		
+		this.collection_path = "/Volumes/Media/Music";
+		
+		// If there's no collection path then the database has probably just been created.
+		this.createDatabaseSchema(function(){
+		
+			throw 'There is no collection path. Fail.';
+		
+		});
+		
+	}
 	
 	// Remember who you are.
 	var self = this;
@@ -93,8 +128,6 @@ MusicMe.prototype.walkCollection = function(callback){
 MusicMe.prototype.getMetadata = function(path,callback){
 	
 	var parser = new musicmetadata(fs.createReadStream(path));
-	
-	console.log(path);
 	
 	parser.on('done',function(metadata){
 		
