@@ -1,7 +1,7 @@
 {
-	"name" : "musicme-server",
+	"name" : "musicme-backend",
 	"version" : "0.0.1",
-	"main" : "musicme-server.js",
+	"main" : "app.js",
 	"author" : "Luke Channings",
 	"engines" : {
 		"node" : ">= 0.6.6"
