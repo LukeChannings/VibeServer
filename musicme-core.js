@@ -11,7 +11,12 @@ var MusicMe = function(callback){
 	var self = this;
 	
 	// Open a database.
-	var db = this.db = new sqlite.Database('musicme.db');
+	var db = this.db = new sqlite.Database('musicme.db',function(){
+	
+		// stops the database from not shrinking.
+		db.run("PRAGMA auto_vacuum = full");
+	
+	});
 	
 	// Turns the retrieved row into a member.
 	function assignMember(err,row){

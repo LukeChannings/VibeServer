@@ -5,6 +5,9 @@ var Scanner = require("./musicme-scanner.js");
 // make a core instance.
 new Core(function control(){
 
+	// be verbose.
+	this.verbose = true;
+
 	// make a scanner.
 	var scanner = new Scanner(this.collection_path,this);
 

@@ -18,6 +18,9 @@ function Scanner(path,coreScope){
 	// set the core scope.
 	this.coreScope = ( coreScope ) ? coreScope : this;
 	
+	// make a cache object. (So we don't have to do everything again...)
+	this.cache = {};
+	
 }
 
 /**
@@ -118,7 +121,7 @@ var getMetadataAll = Scanner.prototype.getMetadataAll = function(paths, callback
 	(function iterate(i){
 		
 		// if we've run out of paths.
-		if ( (paths.length + 1) === i )
+		if ( (paths.length) === i )
 		{
 			// we're all done.
 			if ( typeof done == "function" ) done();
@@ -158,21 +161,25 @@ var shouldIScan = Scanner.prototype.shouldIScan = function(callback){
 	
 	// We need to walk the collection to get a list of files...
 	walkCollection(self.path, function(files){
-		
+	
 		// ...which we then join and create a checksum of,
 		var checksum = crypto.createHash('md5').update(files.join('')).digest("hex");
 		
 		// and if the checksum matches the stored checksum, then nothing's changed.
 		var decision = ( self.coreScope.collection_checksum === checksum ) ? false : true;
 		
-		// Store the new checksum.
-		self.checksum = checksum;
+		// Cache the results.
+		self.cache.checksum = checksum;
+		self.cache.walk = files;
+		
+		// make it known that this function has been run.
+		self.shouldIScanHasBeenRun = true;
+		self.shouldIScanDecision = decision;
 		
 		// We'll call back with our decision.
 		callback(decision);
-		
-	});
 	
+	});
 }
 
 /**
@@ -182,31 +189,45 @@ var shouldIScan = Scanner.prototype.shouldIScan = function(callback){
  * @function callback (optional) - executed once the collection has finished scanning.
  */
 var scan = Scanner.prototype.scan = function(callback){
-
+	
 	var self = this;
 	
-	// Truncate the collection.
-	this.coreScope.db.run("DELETE FROM tracks; DELETE FROM albums");
+	// handle the metadata
+	function handleMetadata(metadata,path,index){
 	
-	// Get a list of audio files in the path.
-	walkCollection(this.path,function(files){
+		// add the track to the collection.
+		self.coreScope.addTrackToCollection.apply(self.coreScope,[metadata,path]);
+	
+	}
+	
+	// function to run when all the metadata has been fetched and added to the collection.
+	function end(){
 		
-		// Get the metadata for each file and add it to the collection.
-		getMetadataAll(files,function(metadata, path, index){
+		// update the collection checksum.
+		self.coreScope.updateCollectionChecksum(self.cache.checksum || self.checksum);
 		
-			console.log("Scanning " + index + " of " + files.length);
+		// run the callback if there is one.
+		if ( typeof callback === "function" ) callback();
 		
-			// Call addTrackToCollection in its own scope.
-			self.coreScope.addTrackToCollection.apply(self.coreScope,[metadata, path]);
+	}
+	
+	if ( this.shouldIScanHasBeenRun ){
+	
+		getMetadataAll(self.cache.walk,handleMetadata,end);
+	
+	}
+	else{
 		
-		},function(){
-		
-			// once we're finished, update the collection checksum.
-			self.coreScope.updateCollectionChecksum.call(self.coreScope,self.checksum);
-		
+		walkCollection(self.path,function(walk){
+			
+			self.checksum = crypto.createHash('md5').update(walk.join('')).digest("hex");
+			
+			getMetadataAll(walk,handleMetadata,end);
+			
 		});
-	
-	});
+		
+	}
+
 }
 
 // export myself.
