@@ -64,7 +64,7 @@ var MusicMe = function(callback){
 }
 
 /**
- * MusicMe::createDatabaseSchema
+ * createDatabaseSchema
  * @description Creates a fresh musicme database.
  * @function callback - execute once the database has been created.
  * @WARNING - YOU MUST MANUALLY ADD collection_path TO settings AFTER THE SCHEMA HAS BEEN CREATED! 
@@ -94,7 +94,7 @@ MusicMe.prototype.createDatabaseSchema = function(callback){
 }
 
 /**
- * addTrackToCollection ( RUN WITH .apply(this, [data,path])! )
+ * addTrackToCollection
  * @description Adds the current track to the database.
  * @object data - metadata.
  * @string path - path to the file.
