@@ -1,5 +1,6 @@
-// Require dependencies.
+// require dependencies.
 var sqlite = require("sqlite3");
+var fs = require("fs");
 
 /**
  * MusicMe class
@@ -7,34 +8,29 @@ var sqlite = require("sqlite3");
  */
 var MusicMe = function(callback){
 	
-	// Remember who you are.
+	// remember who you are.
 	var self = this;
 	
-	// Open a database.
-	var db = this.db = new sqlite.Database('musicme.db',function(){
-	
-		// stops the database from not shrinking.
-		db.run("PRAGMA auto_vacuum = full");
-	
-	});
+	// open a database.
+	var db = this.db = new sqlite.Database('musicme.db');
 	
 	// Turns the retrieved row into a member.
 	function assignMember(err,row){
 	
-		// If the row was successfully fetched:
+		// if the row was successfully fetched:
 		if ( !err ) {
 		
-			// Make the setting a member.
+			// make the setting a member.
 			self[row.id] = row.setting;
 		
 		}
 		
-		// If there was an error fetching the row, then throw it.
+		// if there was an error fetching the row, then throw it.
 		else throw err;
 		
 	}
 	
-	// Get settings, pass each row to assignMember and execute callback when finished.
+	// get settings, pass each row to assignMember and execute callback when finished.
 	db.each('SELECT * FROM settings',assignMember,function(){
 		
 		// if there is no collection path, the database has probably just been created.
@@ -48,7 +44,20 @@ var MusicMe = function(callback){
 			
 		}
 		else {
-			callback.call(self);
+		
+			// check that the collection_path actually exists...
+			fs.lstat(self.collection_path,function(err,stat){
+			
+				if ( !err && stat.isDirectory() )
+				{
+					callback.call(self);
+				}
+				else
+				{
+					throw "The current collection path is not a directory. Cannot continue.";
+				}
+			})
+			
 		}
 	});
 	
@@ -66,16 +75,16 @@ MusicMe.prototype.createDatabaseSchema = function(callback){
 	
 	db.serialize(function(){
 
-		// Create settings.
+		// create settings.
 		db.run("CREATE TABLE IF NOT EXISTS settings (id VARCHAR(100), setting VARCHAR(255))");
 		
-		// Create albums.
+		// create albums.
 		db.run("CREATE TABLE IF NOT EXISTS albums(album VARCHAR(255) PRIMARY KEY, album_artist VARCHAR(255), tracks INT(100), year INT(6), genre VARCHAR(255), art VARCHAR(255))");
 		
-		// Create tracks.
+		// create tracks.
 		db.run("CREATE TABLE IF NOT EXISTS tracks(title VARCHAR(255), artist VARCHAR(255), trackno INT(2), path VARCHAR(255))",function(){
 		
-			// When the SQL statements have finished, execute the callback.
+			// when the SQL statements have finished, execute the callback.
 			callback();
 		
 		});
