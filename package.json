@@ -1,5 +1,5 @@
 {
-	"name" : "musicme-backend",
+	"name" : "musicme-daemon",
 	"version" : "0.0.1",
 	"main" : "app.js",
 	"author" : "Luke Channings",
