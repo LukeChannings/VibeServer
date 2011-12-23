@@ -32,8 +32,19 @@ var MusicMe = function(callback){
 	// Get settings, pass each row to assignMember and execute callback when finished.
 	db.each('SELECT * FROM settings',assignMember,function(){
 		
-		callback.call(self);
-		
+		// if there is no collection path, the database has probably just been created.
+		if ( !self.collection_path )
+		{
+			self.createDatabaseSchema(function(){
+			
+				throw "MusicMe doesn't have a collection path set. Please set a path and re-run.";
+			
+			});
+			
+		}
+		else {
+			callback.call(self);
+		}
 	});
 	
 }

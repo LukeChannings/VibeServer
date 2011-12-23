@@ -194,7 +194,7 @@ var scan = Scanner.prototype.scan = function(callback){
 		// Get the metadata for each file and add it to the collection.
 		getMetadataAll(files,function(metadata, path, index){
 		
-			console.log(index + " of " + files.length);
+			console.log("Scanning " + index + " of " + files.length);
 		
 			// Call addTrackToCollection in its own scope.
 			self.coreScope.addTrackToCollection.apply(self.coreScope,[metadata, path]);
