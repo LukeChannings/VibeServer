@@ -1,6 +1,7 @@
 // Include modules.
 var Core = require("./musicme-core.js");
 var Scanner = require("./musicme-scanner.js");
+var Server = require("./musicme-api.js");
 
 // make a core instance.
 new Core(function control(){
@@ -19,5 +20,7 @@ new Core(function control(){
 		else console.log("Collection appears to be up-to-date.");
 
 	});
+
+	new Server;
 
 });

@@ -73,7 +73,7 @@ MusicMe.prototype.createDatabaseSchema = function(callback){
 		db.run("CREATE TABLE IF NOT EXISTS albums(album VARCHAR(255) PRIMARY KEY, album_artist VARCHAR(255), tracks INT(100), year INT(6), genre VARCHAR(255), art VARCHAR(255))");
 		
 		// Create tracks.
-		db.run("CREATE TABLE IF NOT EXISTS tracks(title VARCHAR(255), artist VARCHAR(255), album VARCHAR(255), trackno INT(2), path VARCHAR(255))",function(){
+		db.run("CREATE TABLE IF NOT EXISTS tracks(title VARCHAR(255), artist VARCHAR(255), trackno INT(2), path VARCHAR(255))",function(){
 		
 			// When the SQL statements have finished, execute the callback.
 			callback();
@@ -96,21 +96,21 @@ MusicMe.prototype.addTrackToCollection = function(data,path){
 	
 	// add the album to the collection.
 	db.run("INSERT OR IGNORE INTO albums (album, album_artist, tracks, year, genre) VALUES(?,?,?,?,?)", {
-		1: data.album,
-		2: ( !data.albumartist || data.albumartist.length == 0 ) ? data.artist : data.albumartis,
+		1: data.album[0],
+		2: ( !data.albumartist || data.albumartist.length == 0 ) ? data.artist[0] : data.albumartist[0],
 		3: data.track.of,
 		4: data.year,
 		5: data.genre
 	});
 	
 	// add the track to the collection.
-	db.run("INSERT INTO tracks (title, artist, album, trackno,path) VALUES(?,?,?,?,?)",{
+	db.run("INSERT INTO tracks (title, artist, trackno, path) VALUES(?,?,?,?)",{
 		1: data.title,
-		2: data.artist,
-		3: data.album,
-		4: data.track.of,
-		5: path
+		2: data.artist[0],
+		3: data.track.of,
+		4: path
 	});
+
 }
 
 /**
@@ -119,10 +119,23 @@ MusicMe.prototype.addTrackToCollection = function(data,path){
  */
 MusicMe.prototype.updateCollectionChecksum = function(checksum){
 
-	this.db.run("INSERT OR REPACE INTO settings (id,setting) VALUES('collection_checksum',?)",{
+	this.db.run("INSERT OR REPLACE INTO settings (id,setting) VALUES('collection_checksum',?)",{
 		1:checksum
 	});
 
+}
+
+/**
+ * truncateCollection
+ * @description Truncates the collection-related tables within the database.
+ */
+MusicMe.prototype.truncateCollection = function(callback){
+
+	this.db.run("DELETE FROM tracks");
+	this.db.run("DELETE FROM albums");
+	
+	if ( typeof callback === "function" ) callback();
+	
 }
 
 // export myself.

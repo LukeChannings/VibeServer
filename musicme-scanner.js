@@ -192,12 +192,17 @@ var scan = Scanner.prototype.scan = function(callback){
 	
 	var self = this;
 	
+	// truncate.
+	self.coreScope.truncateCollection.call(self.coreScope);
+	
 	// handle the metadata
 	function handleMetadata(metadata,path,index){
 	
+		if ( self.coreScope.verbose ) console.log("Scanning " + index + " of " + (self.walkFileCount || self.cache.walk.length));
+	
 		// add the track to the collection.
 		self.coreScope.addTrackToCollection.apply(self.coreScope,[metadata,path]);
-	
+		
 	}
 	
 	// function to run when all the metadata has been fetched and added to the collection.
@@ -208,6 +213,8 @@ var scan = Scanner.prototype.scan = function(callback){
 		
 		// run the callback if there is one.
 		if ( typeof callback === "function" ) callback();
+		
+		if ( self.coreScope.verbose ) console.log("All done.");
 		
 	}
 	
@@ -221,6 +228,8 @@ var scan = Scanner.prototype.scan = function(callback){
 		walkCollection(self.path,function(walk){
 			
 			self.checksum = crypto.createHash('md5').update(walk.join('')).digest("hex");
+			
+			self.walkFileCount = walk.length;
 			
 			getMetadataAll(walk,handleMetadata,end);
 			
