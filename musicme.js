@@ -47,7 +47,7 @@ MusicMe.prototype.createDatabaseSchema = function(callback){
 	var db = this.db;
 	
 	db.serialize(function(){
-	
+
 		// Create settings.
 		db.run("CREATE TABLE IF NOT EXISTS settings (id VARCHAR(100), setting VARCHAR(255))");
 		
@@ -55,9 +55,11 @@ MusicMe.prototype.createDatabaseSchema = function(callback){
 		db.run("CREATE TABLE IF NOT EXISTS albums(album_artist VARCHAR(255), tracks INT(100), year INT(6), genre VARCHAR(255), art VARCHAR(255))");
 		
 		// Create tracks.
-		db.run("CREATE TABLE IF NOT EXISTS tracks(title VARCHAR(255), length VARCHAR(50), artist VARCHAR(255), album VARCHAR(255), bitrate VARCHAR(50))");
+		db.run("CREATE TABLE IF NOT EXISTS tracks(title VARCHAR(255), length VARCHAR(50), artist VARCHAR(255), album VARCHAR(255), bitrate VARCHAR(50))",function(){
 		
-		callback();
+			callback();
+		
+		});
 		
 	});
 	
