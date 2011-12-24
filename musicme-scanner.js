@@ -195,24 +195,33 @@ var scan = Scanner.prototype.scan = function(callback){
 	// truncate.
 	self.coreScope.truncateCollection.call(self.coreScope);
 	
+	var metadataGlob = [];
+	
 	// handle the metadata
 	function handleMetadata(metadata,path,index){
 	
 		// log the scanning progress.
-		if ( self.coreScope.verbose ) console.log('Scanning ' + path + ' (' + index + ' of ' + self.cache.walk.length + ')');
-	
-		// add the track to the collection.
-		self.coreScope.addTrackToCollection.apply(self.coreScope,[metadata,path]);
+		if ( self.coreScope.verbose ) console.log('Scanning ' + path + ' (' + (index + 1) + ' of ' + self.cache.walk.length + ')');
+		
+		// Add the path to the metadata object.
+		metadata.path = path.replace(self.coreScope.collection_path,'');
+		
+		// add the metadata to glob.
+		metadataGlob.push(metadata);
 		
 	}
 	
 	// function to run when all the metadata has been fetched and added to the collection.
 	function end(){
 		
-		console.log('Scanning finished.');
+		console.log("Updating the Database...");
 		
-		// update the collection checksum.
-		self.coreScope.updateCollectionChecksum(self.cache.checksum || self.checksum);
+		// add the metadata to the database.
+		self.coreScope.addGlobMetadataToCollection(metadataGlob,function(){
+		
+			console.log("The database was successfully updated.");
+		
+		});
 		
 		// run the callback if there is one.
 		if ( typeof callback === "function" ) callback();
@@ -230,8 +239,6 @@ var scan = Scanner.prototype.scan = function(callback){
 		walkCollection(self.path,function(walk){
 			
 			self.checksum = crypto.createHash('md5').update(walk.join('')).digest("hex");
-			
-			self.walkFileCount = walk.length;
 			
 			getMetadataAll(walk,handleMetadata,end);
 			

@@ -23,8 +23,10 @@ new Core(function control(){
 				
 				scanner.scan(function(){
 				
+					console.log("Scanning finished.");
+				
 					// run the test again after the interval.
-					setTimeout(watchCollection,self.watch_interval);
+					//setTimeout(watchCollection,self.watch_interval);
 				
 				});
 				
@@ -34,7 +36,7 @@ new Core(function control(){
 				console.log("Collection checked " + new Date());
 			
 				// run the test again after the interval.
-				setTimeout(watchCollection,self.watch_interval);
+				//setTimeout(watchCollection,self.watch_interval);
 				
 			}
 		
