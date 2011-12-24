@@ -34,14 +34,13 @@ var MusicMe = function(callback){
 	db.each('SELECT * FROM settings',assignMember,function(){
 		
 		// if there is no collection path, the database has probably just been created.
-		if ( !self.collection_path )
-		{
+		if ( !self.collection_path ){
+		
 			self.createDatabaseSchema(function(){
 			
 				throw "MusicMe doesn't have a collection path set. Please set a path and re-run.";
 			
 			});
-			
 		}
 		else {
 		
@@ -57,8 +56,20 @@ var MusicMe = function(callback){
 					throw "The current collection path is not a directory. Cannot continue.";
 				}
 			})
-			
 		}
+		
+		// check for an API port...
+		if ( !self.api_port ){
+		
+			self.api_port = 3001; // default to port 3001.
+		}
+		
+		// check for watch interval...
+		if ( !self.watch_interval ){
+		
+			self.watch_interval = 30 * 60 * 1000; // default to 30 minutes.
+		}
+		
 	});
 	
 }

@@ -3,7 +3,7 @@ var Core = require("./musicme-core.js");
 var Scanner = require("./musicme-scanner.js");
 var Server = require("./musicme-api.js");
 
-// make a core instance.
+// make a core.
 new Core(function control(){
 
 	// be verbose.
@@ -12,15 +12,37 @@ new Core(function control(){
 	// make a scanner.
 	var scanner = new Scanner(this.collection_path,this);
 
-	// check if the collection data is up-to-date. (Scanning takes a while, why do it for no reason?)
-	scanner.shouldIScan(function(iShouldScan){
+	var self = this;
 
-		if ( iShouldScan ) scanner.scan();
+	// check if the collection data is up-to-date. (scanning takes a while, why do it for no reason?)
+	(function watchCollection(){
+	
+		scanner.shouldIScan(function(iShouldScan){
 
-		else console.log("Collection appears to be up-to-date.");
+			if ( iShouldScan ){
+				
+				scanner.scan(function(){
+				
+					// run the test again after the interval.
+					setTimeout(watchCollection,self.watch_interval);
+				
+				});
+				
+			}
+			else{
+			
+				console.log("Collection checked " + new Date());
+			
+				// run the test again after the interval.
+				setTimeout(watchCollection,self.watch_interval);
+				
+			}
+		
+		});
+	
+	})();
 
-	});
-
-	new Server;
+	// make an API.
+	new Server(this,scanner);
 
 });
