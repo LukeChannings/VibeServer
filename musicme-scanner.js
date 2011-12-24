@@ -48,7 +48,7 @@ var walkCollection = Scanner.prototype.walkCollection = function(path, callback,
 	walker.on('file',function checkFile(path,stat,next){
 		
 		// Check for an audio file.
-		if ( /\.(mp(3|4)|aac|wav|flac|ogg)$/.test(stat.name) && !allowAnyFile ){
+		if ( /\.(mp3|aac|wav|flac|ogg)$/.test(stat.name) && !allowAnyFile ){
 			
 			// Push the song path to the song array.
 			songs.push(path + '/' + stat.name);
@@ -163,12 +163,12 @@ var shouldIScan = Scanner.prototype.shouldIScan = function(callback){
 	walkCollection(self.path, function(files){
 	
 		// ...which we then join and create a checksum of,
-		var checksum = crypto.createHash('md5').update(files.join('')).digest("hex");
+		var checksum = crypto.createHash('md5').update(files.join('')).digest('hex');
 		
 		// and if the checksum matches the stored checksum, then nothing's changed.
 		var decision = ( self.coreScope.collection_checksum === checksum ) ? false : true;
 		
-		// Cache the results.
+		// cache the results.
 		self.cache.checksum = checksum;
 		self.cache.walk = files;
 		
@@ -176,7 +176,7 @@ var shouldIScan = Scanner.prototype.shouldIScan = function(callback){
 		self.shouldIScanHasBeenRun = true;
 		self.shouldIScanDecision = decision;
 		
-		// We'll call back with our decision.
+		// we'll call back with our decision.
 		callback(decision);
 	
 	});
@@ -198,6 +198,9 @@ var scan = Scanner.prototype.scan = function(callback){
 	// handle the metadata
 	function handleMetadata(metadata,path,index){
 	
+		// log the scanning progress.
+		if ( self.coreScope.verbose ) console.log('Scanning ' + path + ' (' + index + ' of ' + self.cache.walk.length + ')');
+	
 		// add the track to the collection.
 		self.coreScope.addTrackToCollection.apply(self.coreScope,[metadata,path]);
 		
@@ -206,6 +209,8 @@ var scan = Scanner.prototype.scan = function(callback){
 	// function to run when all the metadata has been fetched and added to the collection.
 	function end(){
 		
+		console.log('Scanning finished.');
+		
 		// update the collection checksum.
 		self.coreScope.updateCollectionChecksum(self.cache.checksum || self.checksum);
 		
@@ -213,6 +218,7 @@ var scan = Scanner.prototype.scan = function(callback){
 		if ( typeof callback === "function" ) callback();
 		
 	}
+	
 	
 	if ( this.shouldIScanHasBeenRun ){
 	

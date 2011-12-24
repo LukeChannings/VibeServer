@@ -10,21 +10,33 @@ function APIServer(coreScope,scannerScope){
 	// can't keep typing the long version, I'm too lazy for that.
 	var db = coreScope.db;
 	
-	// 
-	router.get('/showmethemoney',function(req,res){
+
+	router.get('/track/*',function(req, res, hash){
 	
-		res.writeHead(200, {'Content-Type': 'text/html'});
+		res.writeHead(200, {'Content-Type': 'text/plain'});
 		
-		db.each("SELECT DISTINCT artist FROM tracks",function(err,row){
+		db.get('SELECT * FROM tracks WHERE hash=?',{1:hash},function(err,row){
 			
-			if ( !err ) res.write(row.artist + "<br/>");
+			if ( !err ) res.end(JSON.stringify(row));
 			
-		},function(){
-		
-			res.end();
-		
 		});
 		
+	}).get('/tracks',function(req,res){
+	
+		res.writeHead(200, {'Content-Type':'text/plain'});
+		
+		var tracks = [];
+		
+		db.each('SELECT * FROM tracks',function(err,data){
+		
+			if ( !err ) tracks.push(data);
+		
+		},function(){
+		
+			res.end(JSON.stringify(tracks));
+		
+		});
+	
 	});
 	
 	// run the server.

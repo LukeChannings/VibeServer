@@ -1,6 +1,7 @@
 // require dependencies.
 var sqlite = require("sqlite3");
 var fs = require("fs");
+var crypto = require("crypto");
 
 /**
  * MusicMe class
@@ -90,10 +91,10 @@ MusicMe.prototype.createDatabaseSchema = function(callback){
 		db.run("CREATE TABLE IF NOT EXISTS settings (id VARCHAR(100), setting VARCHAR(255))");
 		
 		// create albums.
-		db.run("CREATE TABLE IF NOT EXISTS albums(album VARCHAR(255) PRIMARY KEY, album_artist VARCHAR(255), tracks INT(100), year INT(6), genre VARCHAR(255), art VARCHAR(255))");
+		db.run("CREATE TABLE IF NOT EXISTS albums(album VARCHAR(255), artist VARCHAR(255), tracks INT(5), year INT(5), genre VARCHAR(255))");
 		
 		// create tracks.
-		db.run("CREATE TABLE IF NOT EXISTS tracks(title VARCHAR(255), artist VARCHAR(255), trackno INT(2), path VARCHAR(255))",function(){
+		db.run("CREATE TABLE IF NOT EXISTS tracks(title VARCHAR(255), album VARCHAR(255), trackno INT(5), path VARCHAR(255), hash VARCHAR(255))",function(){
 		
 			// when the SQL statements have finished, execute the callback.
 			callback();
@@ -115,20 +116,21 @@ MusicMe.prototype.addTrackToCollection = function(data,path){
 	var db = this.db; // can't be doing with all these `this` prefixes everywhere! 
 	
 	// add the album to the collection.
-	db.run("INSERT OR IGNORE INTO albums (album, album_artist, tracks, year, genre) VALUES(?,?,?,?,?)", {
-		1: data.album[0],
-		2: ( !data.albumartist || data.albumartist.length == 0 ) ? data.artist[0] : data.albumartist[0],
+	db.run("INSERT OR IGNORE INTO albums (album,artist,tracks,year,genre) VALUES(?,?,?,?,?)", {
+		1: data.album,
+		2: data.artist[0],
 		3: data.track.of,
 		4: data.year,
-		5: data.genre
+		5: data.genre[0]
 	});
 	
 	// add the track to the collection.
-	db.run("INSERT INTO tracks (title, artist, trackno, path) VALUES(?,?,?,?)",{
+	db.run("INSERT INTO tracks(title,album,trackno,path,hash) VALUES(?,?,?,?,?)",{
 		1: data.title,
-		2: data.artist[0],
-		3: data.track.of,
-		4: path
+		2: data.albumartist[0] || data.artist[0],
+		3: data.track.no,
+		4: path,
+		5: crypto.createHash('md5').update(data.title+data.artist[0]+data.track.no+data.track.of).digest('hex')
 	});
 
 }
