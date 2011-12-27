@@ -163,8 +163,8 @@ var shouldIScan = Scanner.prototype.shouldIScan = function(callback){
 	walkCollection(self.path, function(files){
 	
 		// ...which we then join and create a checksum of,
-		var checksum = crypto.createHash('md5').update(files.join('')).digest('hex');
-		
+		var checksum = self.cache.checksum = crypto.createHash('md5').update(files.join('')).digest('hex');
+
 		// and if the checksum matches the stored checksum, then nothing's changed.
 		var decision = ( self.coreScope.collection_checksum === checksum ) ? false : true;
 		
@@ -195,10 +195,13 @@ var scan = Scanner.prototype.scan = function(callback){
 	// truncate.
 	self.coreScope.truncateCollection.call(self.coreScope);
 	
+	// make an array to put all of the metadata objects into.
 	var metadataGlob = [];
 	
 	// handle the metadata
 	function handleMetadata(metadata,path,index){
+	
+		self.scanning.no = (index + 1);
 	
 		// log the scanning progress.
 		if ( self.coreScope.verbose ) console.log('Scanning ' + path + ' (' + (index + 1) + ' of ' + self.cache.walk.length + ')');
@@ -214,10 +217,13 @@ var scan = Scanner.prototype.scan = function(callback){
 	// function to run when all the metadata has been fetched and added to the collection.
 	function end(){
 		
-		console.log("Updating the Database...");
+		self.coreScope.updateCollectionChecksum(self.checksum || self.cache.checksum);
 		
 		// add the metadata to the database.
+		// (hopefully this will prevent the random freezes caused by too many simultaneous INSERTS.)
 		self.coreScope.addGlobMetadataToCollection(metadataGlob,function(){
+		
+			self.scanning = null;
 		
 			console.log("The database was successfully updated.");
 		
@@ -231,6 +237,11 @@ var scan = Scanner.prototype.scan = function(callback){
 	
 	if ( this.shouldIScanHasBeenRun ){
 	
+		self.scanning = {
+			no : null,
+			of : self.cache.walk.length
+		}
+	
 		getMetadataAll(self.cache.walk,handleMetadata,end);
 	
 	}
@@ -239,6 +250,11 @@ var scan = Scanner.prototype.scan = function(callback){
 		walkCollection(self.path,function(walk){
 			
 			self.checksum = crypto.createHash('md5').update(walk.join('')).digest("hex");
+			
+			self.scanning = {
+				no : null,
+				of : walk.length
+			}
 			
 			getMetadataAll(walk,handleMetadata,end);
 			

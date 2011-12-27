@@ -13,23 +13,25 @@ function APIServer(coreScope,scannerScope){
 	
 	router.get('/',function(req,res){
 	
-		res.writeHead(200, {'Content-Type': 'text/plain','Access-Control-Allow-Origin':'*'});		
+		res.writeHead(200, {'Content-Type': 'application/json','Access-Control-Allow-Origin':'*'});		
 		res.end(JSON.stringify({
 			header: "MusicMe API",
 			body: "The API provides four main methods: collection (for querying artists, albums and tracks), settings (for reading and writing settings.), stream (for streaming tracks), and identity(for managing accounts.)",
 			examples: ["/collection","/settings","/stream","/identity"]
 		}));
 	
-	}).get('/collection',function(req, res){
+	})
+	.get('/collection',function(req, res){
 	
-		res.writeHead(200, {'Content-Type': 'text/plain','Access-Control-Allow-Origin':'*'});		
+		res.writeHead(200, {'Content-Type': 'application/json','Access-Control-Allow-Origin':'*'});		
 		res.end(JSON.stringify({
 			header: "Collection API",
 			body: "Use the collection API to get information about the collection, including metadata information and scanning progress.",
 			examples: ["/collection/artists","/collection/albums","/collection/tracks","/collection/artist/:artistname","/collection/artist/:artistname/:albumname","/collection/album/:albumname","/collection/album/:albumname/artist/:artistname","/collection/track/:hash","/collection/track/artist/:artistname/album/:albumname/trackno/:trackno","/collection/status"]
 		}));
 		
-	}).get('/collection/artists',function(req,res){
+	})
+	.get('/collection/artists',function(req,res){
 		
 		res.writeHead(200, {'Content-Type': 'application/json','Access-Control-Allow-Origin':'*'});
 		
@@ -47,7 +49,8 @@ function APIServer(coreScope,scannerScope){
 			
 		});
 		
-	}).get('/collection/albums',function(req,res){
+	})
+	.get('/collection/albums',function(req,res){
 		
 		res.writeHead(200, {'Content-Type': 'application/json','Access-Control-Allow-Origin':'*'});
 		
@@ -65,7 +68,8 @@ function APIServer(coreScope,scannerScope){
 			
 		});
 		
-	}).get('/collection/album/*',function(req,res,hash){
+	})
+	.get('/collection/album/*',function(req,res,hash){
 	
 		res.writeHead(200, {'Content-Type': 'application/json','Access-Control-Allow-Origin':'*'});
 		
@@ -83,7 +87,10 @@ function APIServer(coreScope,scannerScope){
 			
 		});
 	
-	}).get('/collection/albums/*',function(req,res,artist){
+	})
+	.get('/collection/albums/*',function(req,res,artist){
+		
+		console.log(artist);
 		
 		res.writeHead(200, {'Content-Type': 'application/json','Access-Control-Allow-Origin':'*'});
 		
@@ -101,7 +108,8 @@ function APIServer(coreScope,scannerScope){
 			
 		});
 		
-	}).get('/collection/tracks',function(req,res){
+	})
+	.get('/collection/tracks',function(req,res){
 	
 		res.writeHead(200, {'Content-Type': 'application/json','Access-Control-Allow-Origin':'*'});
 		
@@ -119,7 +127,8 @@ function APIServer(coreScope,scannerScope){
 			
 		});
 	
-	}).get('/stream',function(req, res){
+	})
+	.get('/stream',function(req, res){
 	
 		res.writeHead(200, {'Content-Type': 'application/json','Access-Control-Allow-Origin':'*'});
 				
@@ -129,7 +138,8 @@ function APIServer(coreScope,scannerScope){
 			examples: ["/stream/:hash"]
 		}));
 		
-	}).get('/stream/*',function(req,res,hash){
+	})
+	.get('/stream/*',function(req,res,hash){
 		
 		db.get('SELECT path FROM tracks WHERE hash=?',{ 1 : hash },function(err,row){
 			
@@ -157,6 +167,57 @@ function APIServer(coreScope,scannerScope){
 				
 			}
 		});
+		
+	})
+	.get('/status/collection',function(req,res){
+		
+		res.writeHead(200, {'Content-Type': 'application/json','Access-Control-Allow-Origin':'*'});
+		
+		var status = {};
+		
+		if ( scannerScope.scanning ){
+			
+			status.scanning = scannerScope.scanning;
+			
+			res.end(JSON.stringify(status));
+			
+		}
+		else{
+		
+			db.serialize(function(){
+			
+				db.get('SELECT count(*) FROM tracks',function(err,row){
+					
+					status.trackCount = row["count(*)"];
+					
+				});
+				
+				db.get('SELECT count(*) FROM albums',function(err,row){
+					
+					status.albumCount = row["count(*)"];
+					
+				});
+			
+				db.get('SELECT count(DISTINCT artist) FROM albums',function(err,row){
+				
+					status.artistCount = row["count(DISTINCT artist)"];
+				
+				});
+				
+				db.get('SELECT count(DISTINCT genre) FROM albums',function(err,row){
+					
+					status.genreCount = row["count(DISTINCT genre)"];
+					
+				},function(){
+				
+					// send the result.
+					res.end(JSON.stringify(status));
+				
+				})
+			
+			});
+		
+		}
 		
 	});
 	
