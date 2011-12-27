@@ -90,7 +90,7 @@ function APIServer(coreScope,scannerScope){
 	})
 	.get('/collection/albums/*',function(req,res,artist){
 		
-		console.log(artist);
+		artist = decodeURIComponent(artist);
 		
 		res.writeHead(200, {'Content-Type': 'application/json','Access-Control-Allow-Origin':'*'});
 		
