@@ -354,6 +354,12 @@ var scan = Scanner.prototype.scan = function(callback){
 					
 						console.log("Added " + diff[1].length + " tracks to the collection.");
 					
+						// update the checksum.
+						self.core.db.get('INSERT OR REPLACE INTO settings (id,setting) VALUES ("collection_checksum",?)',{1:checksum});
+						
+						// update cached checksum.
+						self.core.collection_checksum = checksum;
+						
 					});
 				
 				});
