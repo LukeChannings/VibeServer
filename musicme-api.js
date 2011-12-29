@@ -6,10 +6,10 @@ var fs = require('fs');
  * MusicMe Server API
  * @description MusicMe HTTP Server.
  */
-function APIServer(coreScope,scannerScope){
+function APIServer(core,scanner){
 	
 	// can't keep typing the long version, I'm too lazy for that.
-	var db = coreScope.db;
+	var db = core.db;
 	
 	router.get('/',function(req,res){
 	
@@ -37,7 +37,7 @@ function APIServer(coreScope,scannerScope){
 		
 		var artists = [];
 		
-		db.each('SELECT DISTINCT artist FROM albums',function(err,row){
+		db.each('SELECT DISTINCT artist FROM albums ORDER BY artist',function(err,row){
 		
 			if ( err ) console.log(err); // if there was an error on the row, it's not THAT big of a deal.. we can continue.
 			
@@ -128,6 +128,24 @@ function APIServer(coreScope,scannerScope){
 		});
 	
 	})
+	.get('/collection/update',function(req,res){
+	
+		res.writeHead(200, {'Content-Type': 'application/json','Access-Control-Allow-Origin':'*'});
+	
+		// check if there are changes.
+		scanner.shouldIScan(function(iShouldScan){
+		
+			res.end(JSON.stringify({shouldIScan : iShouldScan}));
+		
+			if ( iShouldScan ){
+				
+				scanner.scan();
+				
+			}
+		
+		});
+	
+	})
 	.get('/stream',function(req, res){
 	
 		res.writeHead(200, {'Content-Type': 'application/json','Access-Control-Allow-Origin':'*'});
@@ -150,7 +168,7 @@ function APIServer(coreScope,scannerScope){
 			}
 			else{
 				
-				fs.readFile(coreScope.collection_path + row.path,function(err,data){
+				fs.readFile(core.collection_path + row.path,function(err,data){
 					
 					if ( err )
 					{
@@ -175,9 +193,9 @@ function APIServer(coreScope,scannerScope){
 		
 		var status = {};
 		
-		if ( scannerScope.scanning ){
+		if ( scanner.scanning ){
 			
-			status.scanning = scannerScope.scanning;
+			status.scanning = scanner.scanning;
 			
 			res.end(JSON.stringify(status));
 			
@@ -208,7 +226,9 @@ function APIServer(coreScope,scannerScope){
 					
 					status.genreCount = row["count(DISTINCT genre)"];
 					
-				},function(){
+				});
+				
+				db.get('SELECT count(path) FROM tracks',function(){
 				
 					// send the result.
 					res.end(JSON.stringify(status));
@@ -222,10 +242,10 @@ function APIServer(coreScope,scannerScope){
 	});
 	
 	// run the server.
-	http.createServer(router).listen(coreScope.api_port);
+	http.createServer(router).listen(core.api_port);
 	
 	// tell people that the server is running.
-	console.log("API running on port " + coreScope.api_port + ".");
+	console.log("API running on port " + core.api_port + ".");
 	
 }
 

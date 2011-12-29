@@ -6,41 +6,18 @@ var Server = require("./musicme-api.js");
 // make a core.
 new Core(function control(){
 
-	// be verbose.
-	this.verbose = true;
-
 	// make a scanner.
 	var scanner = new Scanner(this.collection_path,this);
 
 	var self = this;
 
-	// check if the collection data is up-to-date. (scanning takes a while, why do it for no reason?)
-	(function watchCollection(){
+	// function to watch the collection for updates.
+	(function watch(){
 	
-		scanner.shouldIScan(function(iShouldScan){
-
-			if ( iShouldScan ){
-				
-				console.log("Scanning the collection.");
-				
-				scanner.scan(function(){
-				
-					console.log("Scanning finished.");
-				
-					// run the test again after the interval.
-					setTimeout(watchCollection,self.watch_interval);
-				
-				});
-				
-			}
-			else{
-			
-				console.log("Collection checked " + new Date());
-			
-				// run the test again after the interval.
-				setTimeout(watchCollection,self.watch_interval);
-				
-			}
+		// scan the collection.
+		scanner.scan(function(){
+		
+			setTimeout(watch,self.watch_interval);
 		
 		});
 	

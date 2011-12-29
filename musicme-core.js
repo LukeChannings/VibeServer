@@ -15,21 +15,20 @@ var MusicMe = function(callback){
 	// open a database.
 	var db = this.db = new sqlite.Database('musicme.db');
 	
-	// Turns the retrieved row into a member.
 	function assignMember(err,row){
-	
+		
 		// if the row was successfully fetched:
 		if ( !err ) {
-		
+			
 			// make the setting a member.
 			self[row.id] = row.setting;
-		
+			
 		}
-		
+			
 		// if there was an error fetching the row, then throw it.
 		else throw err;
-		
-	}
+	
+	};
 	
 	// get settings, pass each row to assignMember and execute callback when finished.
 	db.each('SELECT * FROM settings',assignMember,function(){
@@ -48,11 +47,7 @@ var MusicMe = function(callback){
 			// check that the collection_path actually exists...
 			fs.lstat(self.collection_path,function(err,stat){
 			
-				if ( !err && stat.isDirectory() )
-				{
-					callback.call(self);
-				}
-				else
+				if ( err && ! stat.isDirectory() )
 				{
 					throw "The current collection path is not a directory. Cannot continue.";
 				}
@@ -68,8 +63,49 @@ var MusicMe = function(callback){
 		// check for watch interval...
 		if ( !self.watch_interval ){
 		
-			self.watch_interval = 30 * 60 * 1000; // default to 30 minutes.
+			self.watch_interval = 1 * 60 * 1000; // default to 30 minutes.
 		}
+		
+		// make an object to put stats in.
+		var status = self.status = {};
+		
+		// get some collection statistics.
+		db.serialize(function(){
+		
+			// find the number of tracks.
+			db.get('SELECT count(*) FROM tracks',function(err,row){
+				
+				status.trackCount = row["count(*)"];
+				
+			});
+			
+			// find the number of albums.
+			db.get('SELECT count(*) FROM albums',function(err,row){
+				
+				status.albumCount = row["count(*)"];
+				
+			});
+		
+			// find the number of artists.
+			db.get('SELECT count(DISTINCT artist) FROM albums',function(err,row){
+			
+				status.artistCount = row["count(DISTINCT artist)"];
+			
+			});
+			
+			// find the number of genres.
+			db.get('SELECT count(DISTINCT genre) FROM albums',function(err,row){
+				
+				status.genreCount = row["count(DISTINCT genre)"];
+				
+			},function(){
+			
+				//run the callback.
+				callback.call(self);
+			
+			})
+		
+		});
 		
 	});
 	
@@ -81,7 +117,7 @@ var MusicMe = function(callback){
  * @function callback - execute once the database has been created.
  * @WARNING - YOU MUST MANUALLY ADD collection_path TO settings AFTER THE SCHEMA HAS BEEN CREATED! 
  */
-MusicMe.prototype.createDatabaseSchema = function(callback){
+var createDatabaseSchema = MusicMe.prototype.createDatabaseSchema = function(callback){
 
 	var db = this.db;
 	
@@ -109,9 +145,9 @@ MusicMe.prototype.createDatabaseSchema = function(callback){
  * addTrackToCollection
  * @description Adds the current track to the database.
  * @object data - metadata.
- * @string path - path to the file.
+ * @callback (optional) - function to run after track has been added.
  */
-MusicMe.prototype.addTrackToCollection = function(data,callback){
+var addTrackToCollection = MusicMe.prototype.addTrackToCollection = function(data,callback){
 
 	var db = this.db; // can't be doing with all these `this` prefixes everywhere! 
 	
@@ -148,7 +184,7 @@ MusicMe.prototype.addTrackToCollection = function(data,callback){
  * @array glob - Array of metadata objects.
  * @function end - function to be executed when objects have been added.
  */
-MusicMe.prototype.addGlobMetadataToCollection = function(glob,end){
+var addGlobMetadataToCollection = MusicMe.prototype.addGlobMetadataToCollection = function(glob,end){
 
 	var self = this;
 
@@ -178,11 +214,13 @@ MusicMe.prototype.addGlobMetadataToCollection = function(glob,end){
  * updateCollectionChecksum
  * @description Update the database with a new checksum.
  */
-MusicMe.prototype.updateCollectionChecksum = function(checksum){
+var updateCollectionChecksum = MusicMe.prototype.updateCollectionChecksum = function(checksum){
 
 	this.db.run("INSERT OR REPLACE INTO settings (id,setting) VALUES('collection_checksum',?)",{
 		1:checksum
 	});
+
+	this.collection_checksum = checksum;
 
 }
 
@@ -190,7 +228,7 @@ MusicMe.prototype.updateCollectionChecksum = function(checksum){
  * truncateCollection
  * @description Truncates the collection-related tables within the database.
  */
-MusicMe.prototype.truncateCollection = function(callback){
+var truncateCollection = MusicMe.prototype.truncateCollection = function(callback){
 
 	this.db.run("DELETE FROM tracks");
 	this.db.run("DELETE FROM albums");
