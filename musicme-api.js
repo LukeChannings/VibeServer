@@ -11,6 +11,15 @@ function APIServer(core,scanner){
 	// can't keep typing the long version, I'm too lazy for that.
 	var db = core.db;
 	
+	// make an object for MIME types.
+	var mime = {
+		"mp3" : "audio/mpeg",
+		"ogg" : "audio/ogg",
+		"wav" : "audio/wave",
+		"aac" : "audio/aac",
+		"flac" : "audio/x-flac"
+	}
+	
 	router.get('/',function(req,res){
 	
 		res.writeHead(200, {'Content-Type': 'application/json','Access-Control-Allow-Origin':'*'});		
@@ -115,7 +124,7 @@ function APIServer(core,scanner){
 		
 		var tracks = [];
 		
-		db.each('SELECT * FROM tracks',function(err,row){
+		db.each('SELECT hash, title, album, trackno FROM tracks',function(err,row){
 		
 			if ( err ) console.log(err); // if there was an error on the row, it's not THAT big of a deal.. we can continue.
 			
@@ -161,14 +170,14 @@ function APIServer(core,scanner){
 		
 		db.get('SELECT path FROM tracks WHERE hash=?',{ 1 : hash },function(err,row){
 			
-			if ( err )
+			if ( err || ! row )
 			{
 				res.writeHead(404, {'Content-Type': 'application/json','Access-Control-Allow-Origin':'*'});
 				res.end(JSON.stringify(err));
 			}
 			else{
 				
-				fs.readFile(core.collection_path + row.path,function(err,data){
+				fs.readFile(row.path,function(err,data){
 					
 					if ( err )
 					{
@@ -176,8 +185,11 @@ function APIServer(core,scanner){
 						res.end(JSON.stringify(err));
 					}
 					else{
-					
-						res.writeHead(200,{'Content-Type':'audio/mpeg'});
+						
+						// get the file extension.
+						var extension = row.path.match(/\.(.+)$/)[1];
+						
+						res.writeHead(200, {'Content-Type': mime[extension] } );
 						res.end(data);
 					}
 					
