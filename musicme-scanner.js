@@ -7,26 +7,18 @@ var crypto = require("crypto");
 /**
  * Scanner Class
  * @description Constructor for the scanner.
- * @string path - Collection path.
  * @object core - Scope of the core class. (Or whichever class has the database socket.)
  */
-function Scanner(path,core){
-
-	if ( path )	this.path = path;
+function Scanner(core){
 	
-	else throw "Scanner instantiated without a path!";
+	// make sure there is a collection path setting.
+	if ( ! core.collection_path ) throw "There is no collection path setting.";
+	
+	// set the collection path within the scanner scope.
+	else this.path = core.collection_path || false;
 	
 	// set the core scope.
 	this.core = ( core ) ? core : this;
-	
-	// make an object for MIME types.
-	this.mimes = {
-		"mp3" : "audio/mpeg",
-		"ogg" : "audio/ogg",
-		"wav" : "audio/wave",
-		"aac" : "audio/aac",
-		"flac" : "audio/x-flac"
-	}
 	
 }
 
@@ -55,7 +47,7 @@ var walkCollection = Scanner.prototype.walkCollection = function(path, callback,
 	walker.on('file',function checkFile(path,stat,next){
 		
 		// Check for an audio file.
-		if ( /\.(mp3|aac|wav|flac|ogg)$/.test(stat.name) && !allowAnyFile ){
+		if ( allowAnyFile || /\.(mp3|aac|wav|flac|ogg)$/.test(stat.name) ){
 			
 			// Push the song path to the song array.
 			songs.push(path + '/' + stat.name);
@@ -89,11 +81,16 @@ var walkCollection = Scanner.prototype.walkCollection = function(path, callback,
  */
 var getMetadata = Scanner.prototype.getMetadata = function(path, callback, next){
 	
+	// open the path.
 	var readStream = fs.createReadStream(path);
 	
+	// if there is no handle for the path it probably doesn't exist.
 	if ( !readStream )
 	{
+		// log the skip.
 		console.log("Skipping " + path);
+		
+		// actually skip.
 		if ( next ) next();
 	}
 	
@@ -223,40 +220,98 @@ var shouldIScan = Scanner.prototype.shouldIScan = function(callback){
 /**
  * addTrackToCollection
  * @description Add track metadata to the collection. (metadata must include a path.)
- * @object metadata - Metadata for the track to add.
+ * @array added - Array of files to add.
  * @object db - Database to work with.
  * @function callback - (optional) Called once the track has been added.
  */
-var addTrackToCollection = Scanner.prototype.addTrackToCollection = function(data, db, callback){
+var addTracksToCollection = Scanner.prototype.addTracksToCollection = function(add, db, callback){
 
-	// add album and track one after another.
-	db.serialize(function(){
+	// there is nothing to add.
+	if ( add.length === 0 ) callback();
+	
+	// there is something to remove.
+	else {
 		
-		// add the album to the collection.
-		db.run("INSERT OR IGNORE INTO albums (hash,album,artist,tracks,year,genre) VALUES(?,?,?,?,?,?)", {
-			1: crypto.createHash('md5').update(data.album + data.artist[0]).digest('hex'),
-			2: data.album,
-			3: data.artist[0],
-			4: data.track.of,
-			5: data.year,
-			6: data.genre[0]
-		});
+		// loop through added items.
+		(function addLoop(i){
 		
-		// add the track to the collection.
-		db.run("INSERT OR REPLACE INTO tracks(hash,title,album,trackno,path) VALUES(?,?,?,?,?)",{
-			1: crypto.createHash('md5').update(data.title+data.artist[0]+data.album).digest('hex'),
-			2: data.title,
-			3: data.album,
-			4: data.track.no,
-			5: data.path
-		},function(){
+			// get metadata.
+			getMetadata(add[i],function(data){
+				
+				// add track to the database.
+				// add album and track one after another.
+				db.serialize(function(){
+					
+					// add the album to the collection.
+					db.run("INSERT OR IGNORE INTO albums (hash,album,artist,tracks,year,genre) VALUES(?,?,?,?,?,?)", {
+						1: crypto.createHash('md5').update(data.album + data.artist[0]).digest('hex'),
+						2: data.album,
+						3: data.artist[0],
+						4: data.track.of,
+						5: data.year,
+						6: data.genre[0]
+					});
+						
+					// add the track to the collection.
+					db.run("INSERT OR REPLACE INTO tracks(hash,title,album,trackno,path) VALUES(?,?,?,?,?)",{
+						1: crypto.createHash('md5').update(data.title+data.artist[0]+data.album).digest('hex'),
+						2: data.title,
+						3: data.album,
+						4: data.track.no,
+						5: data.path
+					},function(){
+							
+						if ( i === 0 ) callback();
+						else addLoop(i - 1);
+						
+					});
+						
+				});
+				
+			});
 			
-			// run the callback.
-			if ( typeof callback === 'function' ) callback();
+		// read tracks back-to-front. for some reason
+		// they're walked upside down, this reverses it.
+		})(add.length - 1);
 		
-		});
+	}
+
+}
+
+/**
+ * removeTracksFromCollection
+ * @description Remove tracks from the collection.
+ * @array remove - array of tracks to remove. (path property.)
+ * @object db - Database to remove tracks from.
+ * @function callback - (optional) executed when the operation is completed.
+ */
+var removeTracksFromCollection = Scanner.prototype.removeTracksFromCollection = function(remove,db,callback){
+	
+	// there is nothing to remove.
+	if ( remove.length === 0 && typeof callback === 'function' ) callback();
+	
+	// there is something to remove.
+	else{
+	
+		// loop the tracks to remove.
+		(function removeLoop(i){
 		
-	});
+			if ( i === remove.length ){
+			
+				if ( typeof callback === 'function' ) callback();
+			
+			}
+			else{
+			
+				db.get('DELETE FROM tracks WHERE path = ?',{ 1 : remove[i] },function(){
+				
+					removeLoop(i + 1);
+				
+				});
+			}
+		
+		})(0);
+	}
 
 }
 
@@ -288,91 +343,17 @@ var scan = Scanner.prototype.scan = function(callback){
 			
 				// get the difference between the actual collection and the database collection.
 				var diff = difference(collectionFromDB,collection);
-			
-				// removed items.
-				var removed = diff[0];
-			
-				// new items.
-				var added = diff[1];
-				
-				function remove(callback){
-					
-					// there is nothing to remove.
-					if ( removed.length === 0 ) callback();
 
-					// there is something to remove.
-					else{
-						
-						(function iterate(i){
-						
-							if ( i === removed.length ){
-							
-								callback();
-							
-							}
-							else{
-								
-								self.core.db.get('DELETE FROM tracks WHERE path = ?',{ 1 : removed[i] },function(){
-								
-									iterate(i + 1);
-								
-								});
-								
-							}
-						
-						})(0);
-						
-					}
-					
-				}
-				
-				function add(callback){
-					
-					// there is nothing to add.
-					if ( added.length === 0 ) callback();
-					
-					// there is something to remove.
-					else {
-						
-						// loop through added items.
-						(function iterate(i){
-						
-							// there is nothing more to add.
-							if ( i === 0 ) callback();
-							
-							// there is something to add.
-							else {
-								
-								// get metadata.
-								getMetadata(added[i],function(metadata){
-								
-									// add track to the database.
-									addTrackToCollection(metadata,self.core.db,function(){
-									
-										// this track has been added. add the next one.
-										iterate(i + 1);
-									
-									});
-								
-								});
-								
-							}
-							
-						})(added.length);
-						
-					}
-				}
-				
 				// remove deleted tracks from the collection.
-				remove(function(){
+				removeTracksFromCollection(diff[0],self.core.db,function(){
 				
-					console.log("Removed " + removed.length + " tracks from the collection.");
+					console.log("Removed " + diff[0].length + " tracks from the collection.");
 				
 					// add new tracks to the collection.
-					add(function(){
-				
-						console.log("Added " + added.length + " tracks to the collection.");
-				
+					addTracksToCollection(diff[1],self.core.db,function(){
+					
+						console.log("Added " + diff[1].length + " tracks to the collection.");
+					
 					});
 				
 				});
