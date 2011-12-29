@@ -7,16 +7,10 @@ var Server = require("./musicme-api.js");
 new Core(function control(){
 
 	// make a scanner.
-	var scanner = new Scanner(this.collection_path,this);
-
-	var self = this;
+	var scanner = new Scanner(this);
 
 	// scan the collection.
-	scanner.scan(function(){
-		
-		setTimeout(watch,self.watch_interval);
-		
-	});
+	scanner.scan();
 	
 	// make an API.
 	new Server(this,scanner);
