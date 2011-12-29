@@ -11,18 +11,13 @@ new Core(function control(){
 
 	var self = this;
 
-	// function to watch the collection for updates.
-	(function watch(){
-	
-		// scan the collection.
-		scanner.scan(function(){
+	// scan the collection.
+	scanner.scan(function(){
 		
-			setTimeout(watch,self.watch_interval);
+		setTimeout(watch,self.watch_interval);
 		
-		});
+	});
 	
-	})();
-
 	// make an API.
 	new Server(this,scanner);
 
