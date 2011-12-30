@@ -13,6 +13,8 @@ function APIServer(Core,Scanner){
 	scanner = Scanner;
 	core = Core;
 	
+	var self = this
+	
 	// make an object for MIME types.
 	mime = this.mime = {
 		"mp3" : "audio/mpeg",
@@ -33,12 +35,20 @@ function APIServer(Core,Scanner){
 	.get('/collection/album/*/hash',this.getAlbumTracksByHash)
 	.get('/collection/albums/*',this.getArtistsAlbums)
 	.get('/collection/update',this.updateCollection)
-	.get('/collection/update/force',function(){
+	.get('/collection/update/force',function(req,res){
+		
+		// if we're already scanning then don't allow an update to be run again.
+		if ( scanner.scanning ){
+		
+			res.end(JSON.stringify({shouldIScan : false, alreadyScanning : true}));
+			
+			return;
+		}
 		
 		// Truncate the collection before updating.
 		core.truncateCollection(function(){
 		
-			this.updateCollection();
+			self.updateCollection(req,res)
 		
 		});
 	
@@ -228,7 +238,15 @@ var getArtistsAlbums = APIServer.prototype.getArtistsAlbums = function(req,res,a
 var updateCollection = APIServer.prototype.updateCollection = function(req,res){
 
 	res.writeHead(200, {'Content-Type': 'application/json','Access-Control-Allow-Origin':'*'});
-
+	
+	// if we're already scanning then don't allow an update to be run again.
+	if ( scanner.scanning ){
+	
+		res.end(JSON.stringify({shouldIScan : false, alreadyScanning : true}));
+		
+		return;
+	}
+	
 	// check if there are changes.
 	scanner.shouldIScan(function(iShouldScan){
 

@@ -125,9 +125,13 @@ var truncateCollection = MusicMe.prototype.truncateCollection = function(callbac
 
 	var db = this.db;
 
+	this.collection_checksum = false;
+
 	db.serialize(function(){
 		
 		db.run('DELETE FROM tracks');
+		
+		db.run('DELETE FROM settings WHERE id = "collection_checksum"');
 		
 		db.run('DELETE FROM albums',function(){
 		
