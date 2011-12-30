@@ -29,9 +29,17 @@ function APIServer(Core,Scanner){
 	.get('/collection/artists',this.getArtists)
 	.get('/collection/albums',this.getAlbums)
 	.get('/collection/tracks',this.getTracks)
-	.get('/collection/album/*',this.getAlbumTracksByHash)
+	.get('/collection/album/*',this.getAlbumTracks)
+	.get('/collection/album/*/hash',this.getAlbumTracksByHash)
 	.get('/collection/albums/*',this.getArtistsAlbums)
 	.get('/collection/update',this.updateCollection)
+	.get('/collection/update/force',function(){
+		
+		// Truncate the collection before updating.
+		core.truncateCollection(this.updateCollection):
+	
+	})
+	.get('/collection/status',this.getCollectionStatistics)
 	.get('/stream',this.info)
 	.get('/stream/*',this.stream)
 	
@@ -123,6 +131,35 @@ var getTracks = APIServer.prototype.getTracks = function(req,res){
 }
 
 /**
+ * getAlbumTracks
+ * @description Responds with a list of tracks in an album.
+ * @object req - the request.
+ * @object res - the response.
+ * @string album - the album.
+ */
+var getAlbumTracks = APIServer.prototype.getAlbumTracks = function(req,res,album){
+
+	var album = decodeURIComponent(album);
+
+	res.writeHead(200, {'Content-Type': 'application/json','Access-Control-Allow-Origin':'*'});
+	
+	var tracks = [];
+	
+	db.each('SELECT hash,title,trackno FROM tracks WHERE album = ?',album,function(err,row){
+	
+		if ( !err ) tracks.push(row);
+	
+		else throw err;
+	
+	},function(){
+	
+		res.end(JSON.stringify(tracks));
+	
+	});
+
+}
+
+/**
  * getAlbumTracksByHash
  * @description Creates a response to a request for the tracks in an album.
  * @object req - the request.
@@ -135,7 +172,7 @@ var getAlbumTracksByHash = APIServer.prototype.getAlbumTracksByHash = function(r
 	
 	var tracks = [];
 	
-	db.each('SELECT tracks.* FROM albums INNER JOIN tracks WHERE albums.hash=?',{ 1 : hash },function(err,row){
+	db.each('SELECT * FROM tracks INNER JOIN albums ON tracks.album=albums.album WHERE albums.hash = ?',hash,function(err,row){
 	
 		if ( err ) console.log(err); // if there was an error on the row, it's not THAT big of a deal.. we can continue.
 		
@@ -164,7 +201,7 @@ var getArtistsAlbums = APIServer.prototype.getArtistsAlbums = function(req,res,a
 	
 	var albums = [];
 	
-	db.each('SELECT * FROM albums WHERE artist=?',{ 1 : artist },function(err,row){
+	db.each('SELECT * FROM albums WHERE artist=?',artist,function(err,row){
 	
 		if ( err ) console.log(err); // if there was an error on the row, it's not THAT big of a deal.. we can continue.
 		
@@ -190,8 +227,12 @@ var updateCollection = APIServer.prototype.updateCollection = function(req,res){
 
 	// check if there are changes.
 	scanner.shouldIScan(function(iShouldScan){
-	
+
+		// return the decision.
 		res.end(JSON.stringify({iShouldScan : iShouldScan}));
+	
+		// if the collection is not up-to-date then update it.
+		if ( iShouldScan ) scanner.scan();
 	
 	});
 
@@ -288,6 +329,76 @@ var info = APIServer.prototype.info = function(req,res){
 		
 			res.end();
 	}
+
+}
+
+/**
+ * getCollectionStatistics
+ * @description fetches the collection statistics.
+ * @function callback - executed when statistics have been updated. 
+ */
+var getCollectionStatistics = APIServer.prototype.getCollectionStatistics = function(req,res){
+
+	res.writeHead(200, {'Content-Type': 'application/json','Access-Control-Allow-Origin':'*'});	
+
+	// make an object to contain the results.
+	var results = {};
+
+	// check if the collection is being scanned.
+	if ( scanner.scanning ){
+	
+		// set the number of items being scanned.
+		results.itemsToScan = scanner.scanning.of;
+		
+		// set the current item being scanned.
+		results.itemsScanned = scanner.scanning.no;
+	
+	}
+
+	// execute the following SQL in sequence.
+	db.serialize(function(){
+	
+		// determine the number of artists.
+		db.get('SELECT count(DISTINCT artist) FROM albums',function(err,row){
+			
+			if ( ! err ) results.artistCount = row['count(DISTINCT artist)'];
+			
+			else throw err;
+			
+		});
+	
+		// determine the number of albums.
+		db.get('SELECT count(album) FROM albums',function(err,row){
+			
+			if ( ! err ) results.albumCount = row['count(album)'];
+			
+			else throw err;
+			
+		});
+	
+		// determine the number of tracks.
+		db.get('SELECT count(title) FROM tracks',function(err,row){
+		
+			if ( ! err ) results.trackCount = row['count(title)'];
+			
+			else throw err;
+		
+		});
+	
+		// determine the number of genres.
+		db.get('SELECT count(genre) FROM albums',function(err,row){
+		
+			if ( ! err ) results.genreCount = row['count(genre)'];
+			
+			else throw err;
+		
+		},function(){
+		
+			res.end(JSON.stringify(results));
+		
+		});
+	
+	});
 
 }
 

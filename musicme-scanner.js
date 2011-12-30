@@ -11,15 +11,12 @@ var crypto = require("crypto");
  */
 function Scanner(core){
 	
-	// make sure there is a collection path setting.
-	if ( ! core.collection_path ) throw "There is no collection path setting.";
-	
 	// set the collection path within the scanner scope.
-	else this.path = core.collection_path || false;
+	this.path = core.collection_path || false;
 	
 	// set the core scope.
 	this.core = ( core ) ? core : this;
-	
+
 }
 
 /**
@@ -226,6 +223,8 @@ var shouldIScan = Scanner.prototype.shouldIScan = function(callback){
  */
 var addTracksToCollection = Scanner.prototype.addTracksToCollection = function(add, db, callback){
 
+	var self = this;
+
 	// there is nothing to add.
 	if ( add.length === 0 ) callback();
 	
@@ -238,7 +237,8 @@ var addTracksToCollection = Scanner.prototype.addTracksToCollection = function(a
 			// get metadata.
 			getMetadata(add[i],function(data){
 				
-				// add track to the database.
+				scanning.no = (add.length - i);
+				
 				// add album and track one after another.
 				db.serialize(function(){
 					
@@ -251,7 +251,7 @@ var addTracksToCollection = Scanner.prototype.addTracksToCollection = function(a
 						5: data.year,
 						6: data.genre[0]
 					});
-						
+					
 					// add the track to the collection.
 					db.run("INSERT OR REPLACE INTO tracks(hash,title,album,trackno,path) VALUES(?,?,?,?,?)",{
 						1: crypto.createHash('md5').update(data.title+data.artist[0]+data.album).digest('hex'),
@@ -260,7 +260,7 @@ var addTracksToCollection = Scanner.prototype.addTracksToCollection = function(a
 						4: data.track.no,
 						5: data.path
 					},function(){
-							
+						
 						if ( i === 0 ) callback();
 						else addLoop(i - 1);
 						
@@ -338,7 +338,6 @@ var scan = Scanner.prototype.scan = function(callback){
 				// add the path to the array.
 				if ( !err ) collectionFromDB.push(row.path);
 				
-				
 			},function(){
 			
 				// get the difference between the actual collection and the database collection.
@@ -348,6 +347,12 @@ var scan = Scanner.prototype.scan = function(callback){
 				removeTracksFromCollection(diff[0],self.core.db,function(){
 				
 					console.log("Removed " + diff[0].length + " tracks from the collection.");
+				
+					// create an object to monitor the scanning process.
+					scanning = self.scanning = {
+						no : 0,
+						of : diff[1].length
+					}
 				
 					// add new tracks to the collection.
 					addTracksToCollection(diff[1],self.core.db,function(){
@@ -359,6 +364,9 @@ var scan = Scanner.prototype.scan = function(callback){
 						
 						// update cached checksum.
 						self.core.collection_checksum = checksum;
+						
+						// default scanning status.
+						scanning = null;
 						
 					});
 				

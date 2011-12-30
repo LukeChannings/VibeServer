@@ -51,6 +51,9 @@ var MusicMe = function(callback){
 				{
 					throw "The current collection path is not a directory. Cannot continue.";
 				}
+				else {
+					callback.call(self);
+				}
 			})
 		}
 		
@@ -65,47 +68,6 @@ var MusicMe = function(callback){
 		
 			self.watch_interval = 1 * 60 * 1000; // default to 30 minutes.
 		}
-		
-		// make an object to put stats in.
-		var status = self.status = {};
-		
-		// get some collection statistics.
-		db.serialize(function(){
-		
-			// find the number of tracks.
-			db.get('SELECT count(*) FROM tracks',function(err,row){
-				
-				status.trackCount = row["count(*)"];
-				
-			});
-			
-			// find the number of albums.
-			db.get('SELECT count(*) FROM albums',function(err,row){
-				
-				status.albumCount = row["count(*)"];
-				
-			});
-		
-			// find the number of artists.
-			db.get('SELECT count(DISTINCT artist) FROM albums',function(err,row){
-			
-				status.artistCount = row["count(DISTINCT artist)"];
-			
-			});
-			
-			// find the number of genres.
-			db.get('SELECT count(DISTINCT genre) FROM albums',function(err,row){
-				
-				status.genreCount = row["count(DISTINCT genre)"];
-				
-			},function(){
-			
-				//run the callback.
-				callback.call(self);
-			
-			})
-		
-		});
 		
 	});
 	
@@ -161,10 +123,19 @@ var updateCollectionChecksum = MusicMe.prototype.updateCollectionChecksum = func
  */
 var truncateCollection = MusicMe.prototype.truncateCollection = function(callback){
 
-	this.db.run("DELETE FROM tracks");
-	this.db.run("DELETE FROM albums");
-	
-	if ( typeof callback === "function" ) callback();
+	var db = this.db;
+
+	db.serialize(function(){
+		
+		db.run('DELETE FROM tracks');
+		
+		db.run('DELETE FROM albums',function(){
+		
+			if ( typeof callback === "function" ) callback();
+		
+		});
+		
+	});
 	
 }
 

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Edit this.
-MUSIC_COLLECTION='/Volumes/Media/Projects/MusicMe/Code/server/test'
+MUSIC_COLLECTION='/Volumes/Media/Music'
 
 # Ignore all of this.
 
