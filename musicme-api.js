@@ -36,7 +36,11 @@ function APIServer(Core,Scanner){
 	.get('/collection/update/force',function(){
 		
 		// Truncate the collection before updating.
-		core.truncateCollection(this.updateCollection):
+		core.truncateCollection(function(){
+		
+			this.updateCollection();
+		
+		});
 	
 	})
 	.get('/collection/status',this.getCollectionStatistics)
@@ -201,7 +205,7 @@ var getArtistsAlbums = APIServer.prototype.getArtistsAlbums = function(req,res,a
 	
 	var albums = [];
 	
-	db.each('SELECT * FROM albums WHERE artist=?',artist,function(err,row){
+	db.each('SELECT * FROM albums WHERE artist LIKE ?',artist,function(err,row){
 	
 		if ( err ) console.log(err); // if there was an error on the row, it's not THAT big of a deal.. we can continue.
 		

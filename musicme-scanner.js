@@ -366,7 +366,7 @@ var scan = Scanner.prototype.scan = function(callback){
 						self.core.collection_checksum = checksum;
 						
 						// default scanning status.
-						scanning = null;
+						scanning = self.scanning = null;
 						
 					});
 				
