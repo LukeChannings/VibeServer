@@ -1,7 +1,7 @@
 // Include modules.
 var Core = require("./musicme-core.js");
 var Scanner = require("./musicme-scanner.js");
-var Server = require("./musicme-api.js");
+var API = require("./musicme-api.js");
 
 // make a core.
 new Core(function control(){
@@ -13,6 +13,6 @@ new Core(function control(){
 	scanner.scan();
 	
 	// make an API.
-	new Server(this,scanner);
+	new API(this,scanner);
 
 });
