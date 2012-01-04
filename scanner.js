@@ -1,41 +1,48 @@
-// require dependencies.
-var walk = require("walk");
-var musicmetadata = require("musicmetadata");
-var fs = require("fs");
-var crypto = require("crypto");
+var walk = require('walk');
+var crypto = require('crypto');
+var fs = require('fs');
+var musicmetadata = require('musicmetadata');
 
-/**
- * Scanner Class
- * @description Constructor for the scanner.
- * @object core - Scope of the core class. (Or whichever class has the database socket.)
- */
-function Scanner(core){
+function Scanner(){
+
+	var self = this;
+
+	// handle should I scan event.
+	emitter.on('shouldIScan',function(callbackEvent){
 	
-	// set the collection path within the scanner scope.
-	this.path = core.collection_path || false;
+		shouldIScan(function(iShouldScan){
+		
+			emitter.emit(callbackEvent,iShouldScan);
+		
+		});
 	
-	// set the core scope.
-	this.core = ( core ) ? core : this;
+	});
+
+	// handle scan event.
+	emitter.on('scanCollection',function(){
+	
+		scan();
+	
+	});
 
 }
 
 /**
  * walkCollection
  * @description Walks a given path and returns an array of files within.
- * @string path - Path to be walked.
  * @function callback - Function to be called once the directory has been walked.
  * @bool allowAnyFile - Return a list of ALL files within a directory, not just audio formats.
  */
-var walkCollection = Scanner.prototype.walkCollection = function(path, callback, allowAnyFile){
+var walkCollection = Scanner.prototype.walkCollection = function(callback, allowAnyFile){
 	
 	// Make sure there is a path.
-	if ( !path ) throw "walkCollection was called without a path!";
+	if ( ! settings.collection_path ) throw "walkCollection was called without a path!";
 	
 	// Make sure there is a callback.
 	else if ( typeof callback !== "function" ) throw "walkCollection called without a callback!";
 
 	// Make a walker.
-	var walker = walk.walk(path);
+	var walker = walk.walk(settings.collection_path);
 	
 	// Array for song paths.
 	var songs = [];
@@ -70,6 +77,46 @@ var walkCollection = Scanner.prototype.walkCollection = function(path, callback,
 }
 
 /**
+ * shouldIScan
+ * @description Compares the stored collection checksum with a newly generated collection 
+ 				checksum to determine if the collection has been changed.
+ * @string path - the path to the collection.
+ * @function callback - function to execute after we've decided. (depending on the collection, it could be a while.)
+ */
+var shouldIScan = Scanner.prototype.shouldIScan = function(callback){
+	
+	if ( !callback) throw "Missing callback, fool!";
+	
+	var self = this;
+	
+	// we need to walk the collection to get a list of files.
+	walkCollection(function(collection){
+	
+		// join and create a checksum.
+		var checksum = crypto.createHash('md5').update(collection.join('')).digest('hex');
+
+		// if the checksum matches the stored checksum, then nothing's changed.
+		if ( ! settings.collection_checksum ){
+		
+			decision = true;
+			
+			settings.collection_checksum = checksum;
+			
+			emitter.emit('saveSettings');
+			
+		}
+		
+		else var decision = ( settings.collection_checksum === checksum ) ? true : false ;
+		
+		console.log(decision);
+		
+		// execute callback.
+		callback(decision,collection,checksum);
+	
+	});
+}
+
+/**
  * getMetadata
  * @description Get metadata object for a given path.
  * @string path - File to get the metadata for.
@@ -82,7 +129,7 @@ var getMetadata = Scanner.prototype.getMetadata = function(path, callback, next)
 	var readStream = fs.createReadStream(path);
 	
 	// if there is no handle for the path it probably doesn't exist.
-	if ( !readStream )
+	if ( ! readStream )
 	{
 		// log the skip.
 		console.log("Skipping " + path);
@@ -187,41 +234,13 @@ var difference = Scanner.prototype.difference = function(A,B){
 }
 
 /**
- * shouldIScan
- * @description Compares the stored collection checksum with a newly generated collection 
- 				checksum to determine if the collection has been changed.
- * @string path - the path to the collection.
- * @function callback - function to execute after we've decided. (depending on the collection, it could be a while.)
- */
-var shouldIScan = Scanner.prototype.shouldIScan = function(callback){
-	
-	if ( !callback) throw "Missing callback, fool!";
-	
-	var self = this;
-	
-	// we need to walk the collection to get a list of files.
-	walkCollection(self.path, function(collection){
-	
-		// join and create a checksum.
-		var checksum = crypto.createHash('md5').update(collection.join('')).digest('hex');
-
-		// if the checksum matches the stored checksum, then nothing's changed.
-		var decision = ( self.core.collection_checksum === checksum ) ? false : true;
-		
-		// execute callback.
-		callback(decision,collection,checksum);
-	
-	});
-}
-
-/**
  * addTrackToCollection
  * @description Add track metadata to the collection. (metadata must include a path.)
  * @array added - Array of files to add.
  * @object db - Database to work with.
  * @function callback - (optional) Called once the track has been added.
  */
-var addTracksToCollection = Scanner.prototype.addTracksToCollection = function(add, db, callback){
+var addTracksToCollection = Scanner.prototype.addTracksToCollection = function(add, callback){
 
 	var self = this;
 
@@ -234,26 +253,30 @@ var addTracksToCollection = Scanner.prototype.addTracksToCollection = function(a
 		// loop through added items.
 		(function addLoop(i){
 		
+		
 			// get metadata.
 			getMetadata(add[i],function(data){
 				
+				// update the scanning status object.
 				scanning.no = (add.length - i);
+				
+				// emit an event for the addition.
+				socket.emit('addedCollectionItem',scanning.no);
 				
 				// add album and track one after another.
 				db.serialize(function(){
 					
 					// add the album to the collection.
-					db.run("INSERT OR IGNORE INTO albums (hash,album,artist,tracks,year,genre) VALUES(?,?,?,?,?,?)", {
-						1: crypto.createHash('md5').update(data.album + data.artist[0]).digest('hex'),
-						2: data.album,
-						3: data.artist[0],
-						4: data.track.of,
-						5: data.year,
-						6: data.genre[0]
+					db.run("INSERT OR IGNORE INTO album (name,artist,tracks,year,genre) VALUES(?,?,?,?,?)", {
+						1: data.album,
+						2: data.artist[0],
+						3: data.track.of,
+						4: data.year,
+						5: data.genre[0]
 					});
 					
 					// add the track to the collection.
-					db.run("INSERT OR REPLACE INTO tracks(hash,title,album,trackno,path) VALUES(?,?,?,?,?)",{
+					db.run("INSERT OR REPLACE INTO track(hash,title,album,trackno,path) VALUES(?,?,?,?,?)",{
 						1: crypto.createHash('md5').update(data.title+data.artist[0]+data.album).digest('hex'),
 						2: data.title,
 						3: data.album,
@@ -285,7 +308,7 @@ var addTracksToCollection = Scanner.prototype.addTracksToCollection = function(a
  * @object db - Database to remove tracks from.
  * @function callback - (optional) executed when the operation is completed.
  */
-var removeTracksFromCollection = Scanner.prototype.removeTracksFromCollection = function(remove,db,callback){
+var removeTracksFromCollection = Scanner.prototype.removeTracksFromCollection = function(remove,callback){
 	
 	// there is nothing to remove.
 	if ( remove.length === 0 && typeof callback === 'function' ) callback();
@@ -303,7 +326,7 @@ var removeTracksFromCollection = Scanner.prototype.removeTracksFromCollection = 
 			}
 			else{
 			
-				db.get('DELETE FROM tracks WHERE path = ?',{ 1 : remove[i] },function(){
+				db.get('DELETE FROM track WHERE path = ?',{ 1 : remove[i] },function(){
 				
 					removeLoop(i + 1);
 				
@@ -318,22 +341,21 @@ var removeTracksFromCollection = Scanner.prototype.removeTracksFromCollection = 
 /**
  * scan
  * @description Scans a directory for audio files and adds each file's metadata to the database.
- * @function callback - (optional) executed once the collection has finished scanning.
  */
-var scan = Scanner.prototype.scan = function(callback){
+var scan = Scanner.prototype.scan = function(){
 
 	var self = this;
 
 	// check if the collection has changed.
-	self.shouldIScan(function(iShouldScan,collection,checksum){
-	
+	shouldIScan(function(iShouldScan,collection,checksum){
+
 		if ( iShouldScan ){
 			
 			// array to contain the current collection in the database.
 			var collectionFromDB = [];
 			
 			// get each path from the collection.
-			self.core.db.each('SELECT path FROM tracks',function(err,row){
+			db.each('SELECT path FROM tracks',function(err,row){
 				
 				// add the path to the array.
 				if ( !err ) collectionFromDB.push(row.path);
@@ -344,26 +366,26 @@ var scan = Scanner.prototype.scan = function(callback){
 				var diff = difference(collectionFromDB,collection);
 
 				// remove deleted tracks from the collection.
-				removeTracksFromCollection(diff[0],self.core.db,function(){
+				removeTracksFromCollection(diff[0],function(){
 				
 					console.log("Removed " + diff[0].length + " tracks from the collection.");
 				
 					// create an object to monitor the scanning process.
-					scanning = self.scanning = {
+					scanning = {
 						no : 0,
 						of : diff[1].length
 					}
 				
 					// add new tracks to the collection.
-					addTracksToCollection(diff[1],self.core.db,function(){
+					addTracksToCollection(diff[1],function(){
 					
 						console.log("Added " + diff[1].length + " tracks to the collection.");
 					
 						// update the checksum.
-						self.core.db.get('INSERT OR REPLACE INTO settings (id,setting) VALUES ("collection_checksum",?)',{1:checksum});
+						db.get('INSERT OR REPLACE INTO settings (id,setting) VALUES ("collection_checksum",?)',{1:checksum});
 						
 						// update cached checksum.
-						self.core.collection_checksum = checksum;
+						settings.collection_checksum = checksum;
 						
 						// default scanning status.
 						scanning = self.scanning = null;
@@ -378,5 +400,5 @@ var scan = Scanner.prototype.scan = function(callback){
 	});
 }
 
-// export myself.
+
 module.exports = Scanner;
