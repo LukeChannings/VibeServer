@@ -1,10 +1,7 @@
 #MusicMe Daemon.#
 
-This program provides a daemon that runs a RESTful API for use with a MusicMe client,
-it will scan the collection and build a database of metadata on the collection.
+This daemon will run on the computer with the music with the purpose of serving the music to a MusicMe client. The daemon provides two key features to the client through an API: a) Getting collection data, e.g. Artists, Albums, Genres, etc. as well as more complicated queries, b) A stream of the audio file in its original format, without transcoding. (The method of playing is left up to the client, MM2 is probably the best choice.)
 
-Presently the structure of the daemon is split into three files: the core, the scanner and
-the api. The core handles interactions with the database, the scanner walks a directory and
-fetches metadata, and the API will provide a RESTful API for use in a client.
+The daemon will scan the following formats: MP3, OGG, WAV, AAC, M4A. The API will be available through socket.io, (,) which will support WebSockets and JSON long polling. Clients should include socket.io including the following URI: http://host:port/socket.io/socket.io.js in a script.
 
-This project is in the baby stage, and everything here is subject to change without warning.
+Streaming can be accessed through http://host:port/stream/:hash, where :hash is the hash of the track to be streamed. (The hash is found using the API.)
