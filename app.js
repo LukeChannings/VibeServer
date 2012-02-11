@@ -1,4 +1,19 @@
-/**
- * MusicMe Daemon
- * @description Provides server-side support for the client by serving an API and audio streams. (See README)
- */
+// includes.
+var EventEmitter = require('events').EventEmitter;
+
+// MusicMe classes.
+var Settings = require("./settings.js");
+var Collection = require("./collection.js");
+var Scanner = require("./scanner.js");
+
+// create a global event object.
+global.event = new EventEmitter();
+
+// create a settings instance.
+global.settings = new Settings();
+
+// create the collection.
+var collection = new Collection();
+
+// create a scanner.
+var scanner = new Scanner();
