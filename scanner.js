@@ -14,13 +14,13 @@ function Scanner(callback){
 
 	var self = this;
 
-	function setState(state,no,of){
+	function setState(state,no,of,path){
 		
 		self.scanningState = state;
 		
-		if ( state == "FETCHING_METADATA" && no && of )
+		if ( state == "ADDING_TRACK" && no && of )
 		{
-			console.log("Scanned " + Math.floor((no/of)*100) + "% (" + no + '/' + of + ')');
+			console.log("Scanned " + Math.floor((no/of)*100) + "% (" + no + '/' + of + ') - ' + path);
 			
 			self.itemsToScan = of;
 			self.itemsScanned = no;
@@ -33,102 +33,108 @@ function Scanner(callback){
 
 	/**
 	 * walk
-	 * @description synchronous walk.
+	 * @description asynchronous walk.
 	 */
-	function walk(path,callback){
+	function walk(path, done) {
+
+		if ( !path || !done ) throw "walk: missing parameters.";
 		
-		var result = walkSync(path);
+		var result = [];
 		
-		callback(result);
+		fs.readdir(path,function(err,list){
 		
-	}
-	
-	/**
-	 * walkSync
-	 * @description synchronous walk.
-	 */
-	function walkSync(path){
-	
-		var songs = [];
-		
-		var files = fs.readdirSync(path);
-		
-		for ( var i = 0; i < files.length; i++ )
-		{
-			var stat = fs.statSync(path + '/' + files[i]);
+			(function next(i){
 			
-			if ( stat.isFile() && /(mp3|ogg|aac)$/.test(files[i]) )
-			{
-				songs.push(path + '/' + files[i]);
-			}
-			else if ( stat.isDirectory() )
-			{
-			
-				var subfiles = walkSync(path + '/' + files[i]);
-			
-				for ( var j = 0; j < subfiles.length; j++ )
+				if ( ! list[i] )
 				{
-					songs.push(subfiles[j]);
+					done(null,result);
+					return;
 				}
-			}
-		}
-		
-		return songs;
-	
-	}
-
-	function collectionDifference(){}
-
-	this.scan = function(){
-	
-		setState("WALKING");
-	
-		var path = settings.get('collectionPath');
-	
-		walk(path,function(songs){
-		
-			setState("FETCHING_METADATA");
-		
-			// generate a checksum.
-			var checksum = crypto.createHash('md5').update(songs.join('')).digest("hex");
-		
-			// get the last checksum.
-			var collectionChecksum = settings.get('collectionChecksum');
-		
-			if ( checksum !== collectionChecksum )
-			{
-			
-				settings.set('collectionChecksum',checksum);
-			
-				(function loopThroughSongs(i){
 				
-					setState("FETCHING_METADATA",i,songs.length);
+				var file = path + '/' + list[i];
 				
-					if ( i < songs.length )
+				fs.stat(file,function(err,stat){
+				
+					if ( /\.(mp3|ogg|m4a|flac)$/.test(file) )
 					{
-						event.emit('addTrackToCollection',songs[i],function(){
+					
+						result.push(file);
 						
-							loopThroughSongs(i + 1);
+						next(++i);
 						
+					}
+					else if ( stat.isDirectory() )
+					{
+						walk(file,function(err,list){
+							
+							if ( err ) throw err;
+							
+							result = result.concat(list);
+							
+							next(++i);
+							
 						});
 					}
 					else
 					{
-						setState("NOT_SCANNING");
+						next(++i);
 					}
 				
-				})(0);
+				});
 			
+			})(0);
+		
+		});
+
+	}
+
+	function collectionDifference(oldPaths,newPaths){
+	
+		var removed = oldPaths.filter(function(item){ if ( newPaths.indexOf(item) === -1 ) return 1; else return 0 });
+		var added = newPaths.filter(function(item){ if ( oldPaths.indexOf(item) === -1 ) return 1; else return 0 });
+	
+		return [removed, added];
+	
+	}
+
+	this.scan = function(callback){
+	
+		walk(settings.get('collectionPath'),function(err,result){
+			
+			if ( err ) throw err;
+			
+			// create a hash for the results.
+			var checksum = crypto.createHash('md5').update(result.join()).digest('hex');
+
+			// check if the hashes match.
+			if ( settings.get('collectionChecksum') == checksum )
+			{
+				console.log("Collection is up-to-date.");
 			}
 			else
 			{
-				setState("NOT_SCANNING");
-				console.log("The collection is up-to-date.");
+				// check if there is a previous checksum.
+				if ( settings.get('collectionChecksum') )
+				{
+					event.emit('queryCollection','SELECT path FROM track',function(err,res){
+					
+						console.log(res);
+					
+					});
+					
+				}
+				else
+				{
+					result.forEach(function(file){
+					
+						console.log(file);
+					
+					});
+				}
 			}
 			
-			
 		});
-	
+		
 	}
 	
 	if ( callback ) callback.call(this);

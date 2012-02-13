@@ -3,6 +3,12 @@ var musicmetadata = require('musicmetadata');
 var fs = require('fs');
 var crypto = require('crypto');
 
+/**
+ * Collection
+ * @description Manages the collection database.
+ * @event addTrackToCollection 
+ * @event queryCollection
+ */
 function Collection(callback){
 
 	var self = this;
@@ -14,7 +20,7 @@ function Collection(callback){
 		if ( err ) createCollection();
 		
 		// if there is no problem then execute the callback.
-		if ( callback ) callback.call(self);
+		else if ( callback ) callback.call(self);
 	});
 
 	/**
@@ -78,7 +84,9 @@ function Collection(callback){
 	 */
 	this.addTrackToCollection = function(path,callback){
 	
-		getMetadata(path,function(metadata){
+		getMetadata(path, function(metadata){
+		
+			if ( ! metadata ) throw "Bad metadata on " + path;
 		
 			sock.serialize(function(){
 			
@@ -92,7 +100,7 @@ function Collection(callback){
 			
 				// Insert album.
 				sock.run('INSERT OR IGNORE INTO album (id,title,track_of,disk_no,disk_of,artist_id,year,genre) VALUES(?,?,?,?,?,?,?,?)',
-				{					
+				{
 					1: albumid,
 					2: metadata.album,
 					3: metadata.track.of,
@@ -142,6 +150,18 @@ function Collection(callback){
 		});
 		
 	});
+
+	event.on('queryCollection',function(sql,callback){
+
+			sock.run(sql,callback);
+	
+	});
+	
+	event.on('queryCollectionGet',function(sql,callback){});
+
+	event.on('queryCollectionAll',function(sql,callback){});
+
+	event.on('queryCollectionEach',function(sql,callback){});
 
 }
 
