@@ -10,10 +10,18 @@ var Scanner = require("./scanner.js");
 global.event = new EventEmitter();
 
 // create a settings instance.
-global.settings = new Settings();
+global.settings = new Settings(function(){
 
-// create the collection.
-var collection = new Collection();
-
-// create a scanner.
-var scanner = new Scanner();
+	// create the collection.
+	var collection = new Collection(function(){
+	
+		// create a scanner.
+		var scanner = new Scanner(function(){
+		
+			this.scan();
+		
+		});
+	
+	});
+	
+});

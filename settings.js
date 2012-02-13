@@ -6,6 +6,8 @@ function Settings(callback){
 	var collectionChecksum;
 	var port;
 	
+	var self = this;
+	
 	function writeSettings(){
 	
 		var settings = JSON.stringify({
@@ -32,13 +34,20 @@ function Settings(callback){
 			if ( err ) throw "No settings file.";
 			else {
 				
-				var data = JSON.parse(data);
+				try{
+					var data = JSON.parse(data);
+				}
+				catch(ex)
+				{
+					console.error("settings file corrupted.");
+					return false;
+				}
 				
 				collectionPath = data.collection_path || null;
 				collectionChecksum = data.collection_checksum || null;
 				port = data.port || 3000;
 			
-				if ( callback ) callback();
+				if ( callback ) callback.call(self);
 			}
 		});
 	})()
