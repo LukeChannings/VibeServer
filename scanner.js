@@ -125,11 +125,30 @@ function Scanner(callback){
 				}
 				else
 				{
-					result.forEach(function(file){
+					(function next(i){
 					
-						console.log(file);
-					
-					});
+						if ( ! result[i] )
+						{
+						
+							settings.set('collectionChecksum',checksum);
+						
+							console.log("Fetching metadata finished.");
+						
+						}
+						else
+						{
+						
+							event.emit('addTrackToCollection',result[i],function(){
+							
+								console.log("Added " + result[i]);
+							
+								next(++i);
+							
+							});
+						
+						}
+						
+					})(0);
 				}
 			}
 			
