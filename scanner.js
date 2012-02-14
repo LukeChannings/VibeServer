@@ -138,9 +138,9 @@ function Scanner(callback){
 						else
 						{
 						
+							setState("ADDING_TRACK",i,result.length);
+						
 							event.emit('addTrackToCollection',result[i],function(){
-							
-								console.log("Added " + result[i]);
 							
 								next(++i);
 							
