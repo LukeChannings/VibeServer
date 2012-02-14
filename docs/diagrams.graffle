@@ -26,9 +26,9 @@
 	<key>MasterSheets</key>
 	<array/>
 	<key>ModificationDate</key>
-	<string>2012-02-13 17:57:45 +0000</string>
+	<string>2012-02-14 01:02:37 +0000</string>
 	<key>Modifier</key>
-	<string>Luke Channings</string>
+	<string>Luke</string>
 	<key>NotesVisible</key>
 	<string>NO</string>
 	<key>OriginVisible</key>
@@ -2395,8 +2395,8 @@
 					<integer>45427</integer>
 					<key>Points</key>
 					<array>
-						<string>{270.44778, 168.39636}</string>
-						<string>{298.54593, 181.32191}</string>
+						<string>{270.44757, 168.39647}</string>
+						<string>{298.54575, 181.32228}</string>
 					</array>
 					<key>Style</key>
 					<dict>
@@ -2675,7 +2675,7 @@
 					<key>Points</key>
 					<array>
 						<string>{411.09842, 373.74725}</string>
-						<string>{380.47714, 364.14954}</string>
+						<string>{380.47711, 364.14954}</string>
 					</array>
 					<key>Style</key>
 					<dict>
@@ -2940,8 +2940,8 @@
 					<integer>45396</integer>
 					<key>Points</key>
 					<array>
-						<string>{120.24014, 368.2565}</string>
-						<string>{146.61989, 379.46075}</string>
+						<string>{120.24009, 368.25662}</string>
+						<string>{146.61931, 379.46078}</string>
 					</array>
 					<key>Style</key>
 					<dict>
@@ -3136,8 +3136,8 @@
 					<integer>45389</integer>
 					<key>Points</key>
 					<array>
-						<string>{121.25258, 429.91678}</string>
-						<string>{150.11806, 415.87497}</string>
+						<string>{121.25254, 429.91678}</string>
+						<string>{150.11803, 415.87497}</string>
 					</array>
 					<key>Style</key>
 					<dict>
@@ -5961,7 +5961,7 @@ track}</string>
 				</dict>
 				<dict>
 					<key>Bounds</key>
-					<string>{{386.06445, 477.90826}, {67, 14}}</string>
+					<string>{{393.56445, 477.90833}, {67, 14}}</string>
 					<key>Class</key>
 					<string>ShapedGraphic</string>
 					<key>FitText</key>
@@ -6009,7 +6009,7 @@ track}</string>
 				</dict>
 				<dict>
 					<key>Bounds</key>
-					<string>{{386.06445, 567.65045}, {106, 14}}</string>
+					<string>{{396.56445, 567.65051}, {64, 14}}</string>
 					<key>Class</key>
 					<string>ShapedGraphic</string>
 					<key>FitText</key>
@@ -6048,7 +6048,7 @@ track}</string>
 {\colortbl;\red255\green255\blue255;}
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\qc
 
-\f0\fs24 \cf0 SCAN_REMOVING}</string>
+\f0\fs24 \cf0 SCAN_DEL}</string>
 						<key>VerticalPad</key>
 						<integer>0</integer>
 					</dict>
@@ -6057,7 +6057,7 @@ track}</string>
 				</dict>
 				<dict>
 					<key>Bounds</key>
-					<string>{{386.06445, 657.39264}, {87, 14}}</string>
+					<string>{{396.56445, 657.39264}, {66, 14}}</string>
 					<key>Class</key>
 					<string>ShapedGraphic</string>
 					<key>FitText</key>
@@ -6096,7 +6096,7 @@ track}</string>
 {\colortbl;\red255\green255\blue255;}
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\qc
 
-\f0\fs24 \cf0 SCAN_ADDING}</string>
+\f0\fs24 \cf0 SCAN_ADD}</string>
 						<key>VerticalPad</key>
 						<integer>0</integer>
 					</dict>
@@ -6105,7 +6105,7 @@ track}</string>
 				</dict>
 				<dict>
 					<key>Bounds</key>
-					<string>{{759.80066, 516.28314}, {87, 14}}</string>
+					<string>{{758.78339, 516.28314}, {66, 14}}</string>
 					<key>Class</key>
 					<string>ShapedGraphic</string>
 					<key>FitText</key>
@@ -6144,7 +6144,7 @@ track}</string>
 {\colortbl;\red255\green255\blue255;}
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\qc
 
-\f0\fs24 \cf0 SCAN_ADDING}</string>
+\f0\fs24 \cf0 SCAN_ADD}</string>
 						<key>VerticalPad</key>
 						<integer>0</integer>
 					</dict>
@@ -7427,7 +7427,7 @@ track}</string>
 		<key>ExpandedCanvases</key>
 		<array/>
 		<key>Frame</key>
-		<string>{{-1558, 45}, {1361, 971}}</string>
+		<string>{{0, 56}, {1280, 946}}</string>
 		<key>ListView</key>
 		<true/>
 		<key>OutlineWidth</key>
@@ -7441,7 +7441,7 @@ track}</string>
 		<key>SidebarWidth</key>
 		<integer>232</integer>
 		<key>VisibleRegion</key>
-		<string>{{0, 0}, {952.13678, 697.43591}}</string>
+		<string>{{0, 119.65812}, {882.90601, 676.06842}}</string>
 		<key>Zoom</key>
 		<real>1.1699999570846558</real>
 		<key>ZoomValues</key>

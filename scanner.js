@@ -9,8 +9,12 @@ function Scanner(callback){
 
 	// public stats.
 	this.scanningState = "NOT_SCANNING";
-	this.itemsToScan = 0;
-	this.itemsScanned = 0;
+
+	this.itemsToAdd = 0;
+	this.itemsAdded = 0;
+
+	this.itemsToDel = 0;
+	this.itemsDeleted = 0;
 
 	var self = this;
 
@@ -28,14 +32,23 @@ function Scanner(callback){
 		self.scanningState = state;
 		
 		// if we're adding a track.
-		if ( state == "ADDING_TRACK" && no && of && path )
+		if ( state == "SCAN_ADD" && no && of && path )
 		{
 			// log the percent of tracks scanned and the path of the current item being scanned.
-			console.log("Scanned " + Math.floor((no/of)*100) + "% (" + no + '/' + of + ') - ' + path);
+			console.log("Added " + no + ' of ' + of + ' - ' + path);
 			
 			// set the indexes.
-			self.itemsToScan = of;
+			self.itemsToAdd = of;
 			self.itemsScanned = no;
+			
+		}
+		else if ( state == "SCAN_DEL" && no && of && path )
+		{
+			console.log("Removed: " + no + " of " + of + " - " + path);
+			
+			// set the indexes.
+			self.itemsToDel = of;
+			self.itemsDeleted = no;
 			
 		}
 		else{
@@ -192,6 +205,9 @@ function Scanner(callback){
 			return;
 		}
 	
+		// set new scanning state.
+		setState("SCAN_WALK");
+	
 		// walk the path.
 		walk(path,function(err,result){
 			
@@ -201,21 +217,117 @@ function Scanner(callback){
 			// create a hash for the results.
 			var checksum = crypto.createHash('md5').update(result.join()).digest('hex');
 
-			// check if the hashes match.
+			// if the hashes match.
 			if ( settings.get('collectionChecksum') == checksum )
 			{
+				// set new scanning state.
+				setState("NO_SCAN");
+				
+				// nothing to do here.
 				console.log("Collection is up-to-date.");
 			}
 			else
 			{
-				// check if there is a previous checksum.
+				// if there is a previous checksum. (but it doesn't match the new one.)
 				if ( settings.get('collectionChecksum') )
 				{
+					// set new scanning state. (something has changed.)
+					setState("SCAN_DIFF");
+					
 					// get a list of previous tracks.
 					event.emit('queryCollectionAll','SELECT path FROM track',function(err,res){
 					
-						console.log(res);
-					
+						// initialise an array to put the paths into.
+						var collectionPaths = [];
+						
+						// loop through the result.
+						for ( var i = 0; i < res.length; i++ )
+						{
+							// add the paths to the array.
+							collectionPaths.push(decodeURIComponent(res[i].path));
+						}
+						
+						var diff = collectionDifference(collectionPaths, result);
+						
+						// set no scan state.
+						setState("SCAN_DEL");
+						
+						// loop through tracks to remove.
+						(function removeTracks(i){
+						
+							// there are no more tracks to remove
+							if ( ! diff[0][i] )
+							{
+								// set no scan state.
+								setState("SCAN_ADD");
+								
+								// there are tracks to add.
+								if ( diff[1].length !== 0 )
+								{ 
+									// add tracks.
+									addTracks(0);
+								}
+								
+								// there are no tracks to add.
+								else
+								{
+								
+									// set new checksum.
+									settings.set('collectionChecksum',checksum);
+								
+									// set new scan state.
+									setState("NO_SCAN");
+								}
+							}
+							else
+							{
+								// remove the track from the collection
+								event.emit('removeTrackFromCollection',diff[0][i],function(){
+								
+									setState("SCAN_DEL",i,diff[0].length);
+								
+									// when we're done move on to the next track to remove.
+									removeTracks(++i);
+								
+								});
+								
+							}
+						
+						})(0);
+						
+						// add new tracks to the collection.
+						function addTracks(i){
+							
+							// there are no more tracks to add
+							if ( ! diff[1][i] )
+							{
+								// set no scan state.
+								setState("NO_SCAN");
+								
+								// call it quits.
+								return;
+							}
+							
+							// there are tracks to add.
+							else
+							{
+								// add the current track.
+								event.emit('addTrackToCollection',diff[1][i],function(){
+								
+									// set a new scan state.
+									setState("SCAN_ADD",i,diff[1].length,diff[1][i]);
+								
+									// set new checksum.
+									settings.set('collectionChecksum',checksum);
+								
+									// when that track has been added read the next track.
+									addTracks(++i);
+								
+								});
+								
+							}
+						}
+						
 					});
 					
 				}
@@ -223,23 +335,35 @@ function Scanner(callback){
 				// if there is no previous checksum then do a first-run scan.
 				else
 				{
+				
+					// set new scanning state.
+					setState("SCAN_ADD");
+				
+					// loop through tracks.
 					(function next(i){
 					
+						// there are no more tracks.
 						if ( ! result[i] )
 						{
-						
+							// save the checksum. (so we don't scan again.)
 							settings.set('collectionChecksum',checksum);
 						
-							console.log("Fetching metadata finished.");
+							// set a new scanning state.
+							setState("NO_SCAN");
+						
+							// tell the world we quit.
+							console.log("Scannings finished..");
 						
 						}
 						else
 						{
+							// set a new index.
+							setState("SCAN_ADD",i,result.length,result[i]);
 						
-							setState("ADDING_TRACK",i,result.length);
-						
+							// add the current track to the collection.
 							event.emit('addTrackToCollection',result[i],function(){
 							
+								// when that track has been added, read the next one.
 								next(++i);
 							
 							});

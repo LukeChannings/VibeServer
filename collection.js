@@ -32,6 +32,9 @@ function Collection(callback){
 		// create a new sqlite3 database.
 		sock = new sqlite.Database('musicme.db');
 		
+		// clear the checksum.
+		settings.set('collectionChecksum','');
+		
 		sock.serialize(function(){
 		
 			sock.run('PRAGMA foreign_keys = ON');
@@ -73,6 +76,8 @@ function Collection(callback){
 		parser.on('done',function(){
 		
 			callback(metadata);
+		
+			parser = null;
 		
 		});
 	
@@ -116,7 +121,7 @@ function Collection(callback){
 				{
 					1: trackid,
 					2: metadata.title,
-					3: path,
+					3: encodeURIComponent(path),
 					4: metadata.track.no,
 					5: albumid
 				},function(){
@@ -132,7 +137,18 @@ function Collection(callback){
 	
 	}
 	
-	this.removeTrackFromCollection = function(){}
+	this.removeTrackFromCollection = function(path,callback){
+	
+		// there is something to remove
+		if ( path )
+		{
+			sock.run("DELETE FROM track WHERE path = ?", [path]);
+			
+			if ( callback ) callback();
+			
+		}
+	
+	}
 
 	this.removeAlbumFromCollection = function(){}
 	
@@ -143,12 +159,16 @@ function Collection(callback){
 	
 		if ( !path ) console.error('Collection unable to handle "addTrackToCollection" event. No path.');
 	
-		self.addTrackToCollection(path,function(){
+		self.addTrackToCollection(path,callback);
 		
-			callback();
-		
-		});
-		
+	});
+
+	event.on('removeTrackFromCollection',function(path,callback){
+	
+		if ( !path ) console.error("Collection unable to handle 'removeTrackFromCollection' request. No path");
+	
+		self.removeTrackFromCollection(path,callback);
+	
 	});
 
 	event.on('queryCollection',function(sql,callback){
@@ -159,7 +179,11 @@ function Collection(callback){
 	
 	event.on('queryCollectionGet',function(sql,callback){});
 
-	event.on('queryCollectionAll',function(sql,callback){});
+	event.on('queryCollectionAll',function(sql,callback){
+	
+		sock.all(sql,callback);
+	
+	});
 
 	event.on('queryCollectionEach',function(sql,callback){});
 
