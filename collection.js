@@ -157,7 +157,7 @@ function Collection(callback){
 	// event listeners.
 	event.on('addTrackToCollection',function(path,callback){
 	
-		if ( !path ) console.error('Collection unable to handle "addTrackToCollection" event. No path.');
+		if ( ! path ) console.error('Collection unable to handle "addTrackToCollection" event. No path.');
 	
 		self.addTrackToCollection(path,callback);
 		
@@ -165,7 +165,7 @@ function Collection(callback){
 
 	event.on('removeTrackFromCollection',function(path,callback){
 	
-		if ( !path ) console.error("Collection unable to handle 'removeTrackFromCollection' request. No path");
+		if ( ! path ) console.error("Collection unable to handle 'removeTrackFromCollection' request. No path");
 	
 		self.removeTrackFromCollection(path,callback);
 	
@@ -173,11 +173,15 @@ function Collection(callback){
 
 	event.on('queryCollection',function(sql,callback){
 
-			sock.run(sql,callback);
+		sock.run(sql,callback);
 	
 	});
 	
-	event.on('queryCollectionGet',function(sql,callback){});
+	event.on('queryCollectionGet',function(sql,callback){
+	
+		sock.get(sql,callback);
+	
+	});
 
 	event.on('queryCollectionAll',function(sql,callback){
 	
