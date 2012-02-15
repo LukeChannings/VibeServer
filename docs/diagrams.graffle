@@ -7441,9 +7441,9 @@ track}</string>
 		<key>SidebarWidth</key>
 		<integer>232</integer>
 		<key>VisibleRegion</key>
-		<string>{{0, 119.65812}, {882.90601, 676.06842}}</string>
+		<string>{{-86.999992, 0}, {1291.25, 988.74994}}</string>
 		<key>Zoom</key>
-		<real>1.1699999570846558</real>
+		<real>0.80000001192092896</real>
 		<key>ZoomValues</key>
 		<array>
 			<array>
@@ -7463,8 +7463,8 @@ track}</string>
 			</array>
 			<array>
 				<string>Scanner Actitity Diagram</string>
-				<real>1.1699999570846558</real>
-				<real>1.059999942779541</real>
+				<real>0.80000001192092896</real>
+				<real>0.81000000238418579</real>
 			</array>
 		</array>
 	</dict>
