@@ -352,7 +352,7 @@ function Scanner(callback){
 							setState("NO_SCAN");
 						
 							// tell the world we quit.
-							console.log("Scannings finished..");
+							console.log("Scanning finished..");
 						
 						}
 						else
