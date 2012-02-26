@@ -39,10 +39,13 @@ function Collection(callback){
 		
 			sock.run('PRAGMA foreign_keys = ON');
 
-			sock.run('CREATE TABLE IF NOT EXISTS track(id VARCHAR(255) NOT NULL PRIMARY KEY,title VARCHAR(255) NOT NULL,path VARCHAR(255) NOT NULL,album_id VARCHAR(255) NOT NULL,duration SMALLTIME,track_no INT(4),plays INT(20),rating INT(1),FOREIGN KEY (album_id) REFERENCES album(id))');
+			// define track.
+			sock.run('CREATE TABLE IF NOT EXISTS track(id VARCHAR(255) NOT NULL PRIMARY KEY,title VARCHAR(255) NOT NULL,path VARCHAR(255) NOT NULL,album_id VARCHAR(255) NOT NULL,duration INT(20),track_no INT(4),plays INT(20),rating INT(1),bitrate INT(10),sample_rate INT(20),FOREIGN KEY (album_id) REFERENCES album(id))');
 			
+			// define album.
 			sock.run('CREATE TABLE IF NOT EXISTS album(id VARCHAR(255) NOT NULL PRIMARY KEY,title VARCHAR(255) NOT NULL,artist_id VARCHAR(255) NOT NULL,track_of INT(4),disk_no INT(4),disk_of INT(4),genre VARCHAR(255),year INT(5),art_uri VARCHAR(255),duration SMALLTIME,FOREIGN KEY (artist_id) REFERENCES artist(id))');
 			
+			// define artist.
 			sock.run('CREATE TABLE IF NOT EXISTS artist(id VARCHAR(255) NOT NULL PRIMARY KEY,name VARCHAR(255) NOT NULL,lastfm_uri VARCHAR(255))');
 			
 			sock.run('CREATE TRIGGER IF NOT EXISTS remove_album DELETE ON album BEGIN DELETE FROM track WHERE album_id = OLD.id; END');
@@ -67,7 +70,13 @@ function Collection(callback){
 		
 		var metadata;
 		
+		// set a 2 second timeout.
+		var timeout = setTimeout("callback(null)",2000);
+		
 		parser.on('metadata',function(data){
+			
+			// clear the timeout.
+			timeout = null;
 			
 			metadata = data;
 			
@@ -75,9 +84,21 @@ function Collection(callback){
 		
 		parser.on('done',function(){
 		
-			callback(metadata);
-		
-			parser = null;
+			var ffmpeg = require('fluent-ffmpeg').Metadata;
+			
+			ffmpeg.get(path,function(data){
+			
+				metadata.duration = data.durationsec;
+			
+				metadata.bitrate = data.audio.bitrate;
+			
+				metadata.sample_rate = data.audio.sample_rate;
+			
+				callback(metadata);
+			
+				parser = ffmpeg = null;
+			
+			});
 		
 		});
 	
@@ -117,13 +138,17 @@ function Collection(callback){
 				});
 			
 				// insert track.
-				sock.run('INSERT INTO track (id,title,path,track_no,album_id) VALUES(?,?,?,?,?)',
+				sock.run('INSERT INTO track (id,title,path,track_no,album_id,duration,bitrate,sample_rate) VALUES(?,?,?,?,?,?,?,?)',
 				{
 					1: trackid,
 					2: metadata.title,
 					3: encodeURIComponent(path),
 					4: metadata.track.no,
-					5: albumid
+					5: albumid,
+					6: metadata.duration,
+					7: metadata.bitrate,
+					8: metadata.sample_rate
+				
 				},function(){
 				
 					// when we're done run the callback.

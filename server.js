@@ -12,6 +12,13 @@ function Server(){
 	// make a socket.io instance and listen on the default port.
 	var io = require('socket.io').listen(httpServer);
 	
+	// socket.io configuration.
+	io.enable('browser client minification');
+	io.enable('browser client gzip');
+	io.set('log level', 1);
+	io.set('transports', ['websocket','flashsocket','jsonp-polling']);
+	
+	// socket.io API methods.
 	io.sockets.on('connection',function(socket){
 	
 		/**
@@ -90,7 +97,7 @@ function Server(){
 		 */
 		socket.on('getAlbumTracks',function(album_id,callback){
 		
-			event.emit('queryCollection','SELECT title, id, track_no FROM track WHERE album_id = "' + album_id + '"',function(err,res){
+			event.emit('queryCollection','SELECT title, id, track_no, duration, bitrate, sample_rate FROM track WHERE album_id = "' + album_id + '"',function(err,res){
 			
 				if ( err ) throw err;
 			
@@ -269,17 +276,6 @@ function Server(){
 				}
 			
 			});
-		}
-		
-		// if the url does not match anything.
-		else {
-		
-			// send 404.
-			res.statusCode = 404;
-			
-			// write error text.
-			res.end('Not Implemented.');
-		
 		}
 	
 	});

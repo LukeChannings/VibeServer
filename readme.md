@@ -13,7 +13,8 @@ Basic MusicMe configuration is set through the __settings.json__ file, which inc
 ##Todo before 1.0##
 
 1. Switch from musicmetadata to taglib
-2. Find a way to determine track duration.
+2. Find a way to determine track duration. --DONE--
 3. Implement HTTP 206 Partial Content for streaming. --DONE--
 4. Implement directory watching.
 5. Test cross-platform. (Only tested on OS X presently.)
+6. Add authentication options for socket.io and streaming.
