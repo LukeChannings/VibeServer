@@ -1,6 +1,6 @@
 {
 	"name" : "musicme-daemon",
-	"version" : "0.0.2",
+	"version" : "0.1",
 	"main" : "app.js",
 	"author" : "Luke Channings",
 	"engines" : {

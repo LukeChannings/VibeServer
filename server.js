@@ -174,34 +174,56 @@ function Server(){
 		
 		else if ( /\/stream\/.+/.test(req.url) )
 		{
-			var hash = req.url.match(/\/stream\/(.+)/)[1];
+			// get the id of the track.
+			var track_id = req.url.match(/\/stream\/(.+)/)[1];
 			
-			event.emit('queryCollection','SELECT path FROM track WHERE id = "' + hash + '"',function(err,result){
+			// get the path of the track.
+			event.emit('queryCollection','SELECT path FROM track WHERE id = "' + track_id + '"',function(err,result){
 			
+				// if there was an error fetching then throw it.
 				if ( err ) throw err;
 				
+				// if there was a result..
 				else if ( result[0] ){
 					
+					// decode the path.
 					var path = decodeURIComponent(result[0].path);
 					
+					// require the filesystem module.
 					var fs = require('fs');
 					
-					res.setHeader("Content-Type", "audio/mpeg");
-					
+					// read the path.
 					fs.readFile(path, function (err, data){
-					  if (err) throw err;
-					  res.end(data);
+					
+						// if there was an error reading the path then throw the error.
+						if (err) throw err;
+					  
+					  	// otherwise, start streaming.
+						res.end(data);
+					  
 					});
 					
 				}
+				
+				// if there was no result, the track_id is invalid.
 				else {
-					res.end("Invalid id.");
+				
+					res.end("Invalid track_id.");
+				
 				}
 			
 			});
 		}
+		
+		// if the url does not match anything.
 		else {
-			res.end('404');
+		
+			// send 404.
+			res.statusCode = 404;
+			
+			// write error text.
+			res.end('Not Implemented.');
+		
 		}
 	
 	});
