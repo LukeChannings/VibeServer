@@ -192,15 +192,71 @@ function Server(){
 					// require the filesystem module.
 					var fs = require('fs');
 					
-					// read the path.
-					fs.readFile(path, function (err, data){
+					// tell the client we accept 206.
+					res.setHeader("Accept-Ranges", "bytes");
+				
+					// get the file statistics.
+					var stat = fs.stat(path,function(err,stats){
 					
-						// if there was an error reading the path then throw the error.
-						if (err) throw err;
-					  
-					  	// otherwise, start streaming.
-						res.end(data);
-					  
+						// get the length of the file.
+						var total = stats.size;
+						
+						// if there is no range request.
+						if ( ! req.headers.range )
+						{
+						
+							// make this dynamic!
+							res.setHeader('Content-Type','audio/mpeg');
+						
+							// send the full file.
+							res.end(fs.readFile(path));
+						
+						}
+						
+						// if there is a range request... (the fun begins..)
+						else
+						{
+							// get the range.
+							var range = req.headers.range.match(/=(.+)-(.*)/);
+							
+							// get the range start.
+							var start = parseInt(range[1]);
+							
+							// get the range end.
+							var end = parseInt(range[2]) || total - 1;
+							
+							// calculate the number of bytes to be sent.
+							var chunks = (end - start) + 1;
+							
+							// tell the client we're sending partial content.
+							res.statusCode = "206 Partial Content";
+							
+							// tell the client the range of bytes we're sending.
+							res.setHeader("Content-Range","bytes " + start + "-" + end + "/" + total);
+							
+							// tell the client the number of bytes we're sending.
+							res.setHeader("Content-Length", chunks);
+							
+							// read in the byte range.
+							var stream = fs.createReadStream(path,{start: start, end: end});
+							
+							// when we have data.
+							stream.on('data',function(data){
+							
+								// send it to the client.
+								res.write(data);
+							
+							});
+							
+							// when we run out of data.
+							stream.on('end',function(){
+								
+								// end our response.
+								res.end();
+							
+							})
+							
+						}
 					});
 					
 				}
