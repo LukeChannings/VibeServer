@@ -235,7 +235,7 @@ function Scanner(callback){
 					setState("SCAN_DIFF");
 					
 					// get a list of previous tracks.
-					event.emit('queryCollectionAll','SELECT path FROM track',function(err,res){
+					event.emit('queryCollection','SELECT path FROM track',function(err,res){
 					
 						// initialise an array to put the paths into.
 						var collectionPaths = [];

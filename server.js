@@ -4,8 +4,13 @@
  */
 function Server(){
 
+	var http = require('http');
+
+	// make an HTTP server.
+	var httpServer = http.createServer().listen(settings.get('port'));
+
 	// make a socket.io instance and listen on the default port.
-	var io = require('socket.io').listen(settings.get('port'));
+	var io = require('socket.io').listen(httpServer);
 	
 	io.sockets.on('connection',function(socket){
 	
@@ -154,7 +159,53 @@ function Server(){
 		});
 	
 	});
+	
+	/**
+	 * stream
+	 * @description Handles stream requests.
+	 * @uri_scheme /stream/:track_id
+	 */
+	httpServer.on('request',function(req,res){
+	
+		if ( req.url == "/stream" )
+		{
+			res.end("Use /stream/:track_id");
+		}
 		
+		else if ( /\/stream\/.+/.test(req.url) )
+		{
+			var hash = req.url.match(/\/stream\/(.+)/)[1];
+			
+			event.emit('queryCollection','SELECT path FROM track WHERE id = "' + hash + '"',function(err,result){
+			
+				if ( err ) throw err;
+				
+				else if ( result[0] ){
+					
+					var path = decodeURIComponent(result[0].path);
+					
+					var fs = require('fs');
+					
+					res.setHeader("Content-Type", "audio/mpeg");
+					
+					fs.readFile(path, function (err, data){
+					  if (err) throw err;
+					  res.end(data);
+					});
+					
+				}
+				else {
+					res.end("Invalid id.");
+				}
+			
+			});
+		}
+		else {
+			res.end('404');
+		}
+	
+	});
+	
 }
 
 module.exports = Server;
