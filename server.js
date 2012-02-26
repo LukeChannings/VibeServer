@@ -26,7 +26,7 @@ function Server(){
 		 * @description Returns an array of artist objects.
 		 * @param callback - function to be sent the result.
 		 */
-		socket.on('getArtists',function(callback,more){
+		socket.on('getArtists',function(callback){
 		
 			event.emit('queryCollection','SELECT name, id, album_count FROM artist WHERE name != "" ORDER BY name COLLATE NOCASE',function(err,res){
 				
