@@ -9,3 +9,11 @@ Streaming can be accessed through __http://host:port/stream/:hash__, where :hash
 ##Configuration.##
 
 Basic MusicMe configuration is set through the __settings.json__ file, which includes two basic settings: the collection path, (where your music is located,) and the port (which the daemon will listen on.)
+
+##Todo before 1.0##
+
+1. Switch from musicmetadata to taglib
+2. Find a way to determine track duration.
+3. Implement HTTP 206 Partial Content for streaming.
+4. Implement directory watching.
+5. Test cross-platform. (Only tested on OS X presently.)
