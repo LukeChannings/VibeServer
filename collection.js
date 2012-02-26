@@ -43,10 +43,10 @@ function Collection(callback){
 			sock.run('CREATE TABLE IF NOT EXISTS track(id VARCHAR(255) NOT NULL PRIMARY KEY,title VARCHAR(255) NOT NULL,path VARCHAR(255) NOT NULL,album_id VARCHAR(255) NOT NULL,duration INT(20),track_no INT(4),plays INT(20),rating INT(1),bitrate INT(10),sample_rate INT(20),FOREIGN KEY (album_id) REFERENCES album(id))');
 			
 			// define album.
-			sock.run('CREATE TABLE IF NOT EXISTS album(id VARCHAR(255) NOT NULL PRIMARY KEY,title VARCHAR(255) NOT NULL,artist_id VARCHAR(255) NOT NULL,track_of INT(4),disk_no INT(4),disk_of INT(4),genre VARCHAR(255),year INT(5),art_uri VARCHAR(255),duration SMALLTIME,FOREIGN KEY (artist_id) REFERENCES artist(id))');
+			sock.run('CREATE TABLE IF NOT EXISTS album(id VARCHAR(255) NOT NULL PRIMARY KEY,title VARCHAR(255) NOT NULL,artist_id VARCHAR(255) NOT NULL,track_of INT(4),disk_no INT(4),disk_of INT(4),genre VARCHAR(255),year INT(5),art_uri VARCHAR(255),duration int,track_count INT(10),FOREIGN KEY (artist_id) REFERENCES artist(id))');
 			
 			// define artist.
-			sock.run('CREATE TABLE IF NOT EXISTS artist(id VARCHAR(255) NOT NULL PRIMARY KEY,name VARCHAR(255) NOT NULL,lastfm_uri VARCHAR(255))');
+			sock.run('CREATE TABLE IF NOT EXISTS artist(id VARCHAR(255) NOT NULL PRIMARY KEY,name VARCHAR(255) NOT NULL,album_count INT(10))');
 			
 			sock.run('CREATE TRIGGER IF NOT EXISTS remove_album DELETE ON album BEGIN DELETE FROM track WHERE album_id = OLD.id; END');
 			
@@ -71,12 +71,12 @@ function Collection(callback){
 		var metadata;
 		
 		// set a 2 second timeout.
-		var timeout = setTimeout("callback(null)",2000);
+		var timeout = setTimeout("callback()", 2000);
 		
 		parser.on('metadata',function(data){
 			
 			// clear the timeout.
-			timeout = null;
+			clearTimeout(timeout);
 			
 			metadata = data;
 			
@@ -162,6 +162,10 @@ function Collection(callback){
 	
 	}
 	
+	/**
+	 * removeTrackFromCollection
+	 * @description removes a track from the collection.
+	 */
 	this.removeTrackFromCollection = function(path,callback){
 	
 		// there is something to remove
@@ -175,9 +179,75 @@ function Collection(callback){
 	
 	}
 
-	this.removeAlbumFromCollection = function(){}
-	
-	this.removeArtistFromCollection = function(){}
+	/**
+	 * postScan
+	 * @description Post-scan data gathering. Gets album art, album duration, number of albums an artist has, etc.
+	 */
+	this.postScan = function(callback){
+		
+		// set album_count for each artist.
+		sock.all('SELECT id FROM artist',function(err,artists){
+		
+			(function next(i){
+			
+				if ( i == artists.length ){
+				
+					// set track_count for each album.
+					sock.all('SELECT id FROM album',function(err,albums){
+					
+						(function next(i){
+						
+							if ( i == albums.length ){
+							
+								if ( callback ) callback();
+							
+							}
+							else
+							{
+								sock.all('SELECT count(*) FROM track WHERE album_id = "' + albums[i].id + '"',function(err,data){
+								
+									var track_count = parseInt(data[0]['count(*)']);
+								
+									sock.all('UPDATE album SET track_count = ' + track_count + ' WHERE id = "' + albums[i].id + '"',function(err){
+									
+										if ( err ) throw err;
+										
+										else next(i + 1);
+									
+									});
+								
+								
+								});
+							}
+						
+						})(0);
+					
+					});
+				
+				}
+				else
+				{
+					sock.all('SELECT count(*) FROM album WHERE artist_id = "' + artists[i].id + '"',function(err,data){
+					
+						var album_count = parseInt(data[0]['count(*)']);
+					
+						sock.all('UPDATE artist SET album_count = ' + album_count + ' WHERE id = "' + artists[i].id + '"',function(err){
+						
+							if ( err ) throw err;
+							
+							else next(i + 1);
+						
+						});
+					
+					
+					});
+				}
+			
+			})(0);
+		
+		});
+		
+	}
 
 	// event listeners.
 	event.on('addTrackToCollection',function(path,callback){
@@ -200,6 +270,12 @@ function Collection(callback){
 	
 		sock.all(sql,callback);
 	
+	});
+
+	event.on('postScan',function(callback){
+		
+		self.postScan(callback);
+		
 	});
 
 }

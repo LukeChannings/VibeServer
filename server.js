@@ -26,14 +26,17 @@ function Server(){
 		 * @description Returns an array of artist objects.
 		 * @param callback - function to be sent the result.
 		 */
-		socket.on('getArtists',function(callback){
+		socket.on('getArtists',function(callback,more){
 		
-			event.emit('queryCollection','SELECT name, id FROM artist WHERE name != "" ORDER BY name COLLATE NOCASE',function(err,res){
+			event.emit('queryCollection','SELECT name, id, album_count FROM artist WHERE name != "" ORDER BY name COLLATE NOCASE',function(err,res){
 				
 				if ( err ) throw err;
 				
-				else callback(res);
+				else{
 				
+					callback(res);
+				
+				}
 			});
 		});
 	
@@ -44,13 +47,30 @@ function Server(){
 		 */
 		socket.on('getAlbums',function(callback){
 		
-			event.emit('queryCollection','SELECT title, id FROM album WHERE TITLE != "" ORDER BY title COLLATE NOCASE'),function(err,res){
+			event.emit('queryCollection','SELECT title, id, track_count FROM album WHERE title != "" ORDER BY title COLLATE NOCASE'),function(err,res){
 			
 				if ( err ) throw err;
 			
 				callback(res);
 			
 			};
+		
+		});
+		
+		/**
+		 * getTracks
+		 * @description Lists all tracks in the collection.
+		 * @param callback - (function) called when the data has been fetched.
+		 */
+		socket.on('getTracks',function(callback){
+		
+			event.emit('queryCollection','SELECT title, id, duration, track_no FROM track WHERE title != ""',function(err,res){
+			
+				if ( err ) throw err;
+				
+				callback(res);
+			
+			});
 		
 		});
 		
@@ -79,7 +99,7 @@ function Server(){
 		 */
 		socket.on('getArtistAlbums',function(artist_id,callback){
 		
-			event.emit('queryCollection','SELECT title, id, track_of FROM album WHERE artist_id = "' + artist_id + '"',function(err,res){
+			event.emit('queryCollection','SELECT title, id, track_of, track_count FROM album WHERE artist_id = "' + artist_id + '"',function(err,res){
 			
 				if ( err ) throw err;
 			
@@ -124,7 +144,33 @@ function Server(){
 			});
 		
 		});
-		 
+		
+		/**
+		 * setRating
+		 * @description set a rating for a track.
+		 * @param track_id (string) - ID for the track we're setting the rating for.
+		 * @param rating (int) - The rating of the track. (0-5)
+		 * @param callback (function) - called once the operation is complete. (Returns true or false for success status.)
+		 */
+		socket.on('setRating',function(track_id,rating){
+		
+			if ( track_id && rating )
+			{
+				event.emit('queryCollection','UPDATE track SET rating=' + parseInt(rating) + ' WHERE id = "' + track_id + '"',function(err){
+				
+					if ( err ){
+						callback(err);
+						throw err;
+					}
+					else {
+						callback(true);
+					}
+				
+				});
+				
+			}
+		});
+		
 		/**
 		 * getAlbumArtURI
 		 * @description Returns an array of URIs to album art. (small, medium, large.)
@@ -144,7 +190,7 @@ function Server(){
 			
 			request({uri: query },function(err,res,body){
 			
-				if (!err && res.statusCode == 200){
+				if ( ! err && res.statusCode == 200){
 				
 					var results = JSON.parse(body);
 					
@@ -159,6 +205,35 @@ function Server(){
 					
 					}
 				
+				}
+			
+			});
+		
+		});
+		
+		/**
+		 * getArtistImageURI
+		 * @description Returns an array of URIs for Artist images.
+		 * @param artist - (string) Artist name.
+		 * @param callback - (function) Callback function.
+		 */
+		socket.on('getArtistImageURI',function(artist,callback){
+		
+			var request = require('request');
+			
+			var api_key = "6d97a6df16c5510dcd504956a0c6edb0";
+			
+			var uri = "http://ws.audioscrobbler.com/2.0/?format=json";
+			
+			var query = uri + "&api_key=" + api_key + "&method=artist.getimages&artist=" + encodeURIComponent(artist);
+			
+			request({uri: query },function(err,res,body){
+			
+				if ( ! err && res.statusCode == 200){
+				
+					var results = JSON.parse(body);
+					
+					callback(results);
 				}
 			
 			});

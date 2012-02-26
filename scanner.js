@@ -349,10 +349,18 @@ function Scanner(callback){
 							settings.set('collectionChecksum',checksum);
 						
 							// set a new scanning state.
-							setState("NO_SCAN");
+							setState("POST_SCAN");
 						
-							// tell the world we quit.
-							console.log("Scanning finished..");
+							// do post scan.
+							event.emit('postScan',function(){
+							
+								// set finished scanning.
+								setState("NO_SCAN");
+							
+								// log it.
+								console.log("Scanning finished.");
+							
+							});
 						
 						}
 						else
