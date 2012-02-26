@@ -113,7 +113,7 @@ function Collection(callback){
 					5: metadata.disk.of,
 					6: artistid,
 					7: metadata.year,
-					8: metadata.genre.join('')
+					8: metadata.genre[0]
 				});
 			
 				// insert track.
@@ -172,24 +172,10 @@ function Collection(callback){
 	});
 
 	event.on('queryCollection',function(sql,callback){
-
-		sock.run(sql,callback);
-	
-	});
-	
-	event.on('queryCollectionGet',function(sql,callback){
-	
-		sock.get(sql,callback);
-	
-	});
-
-	event.on('queryCollectionAll',function(sql,callback){
 	
 		sock.all(sql,callback);
 	
 	});
-
-	event.on('queryCollectionEach',function(sql,callback){});
 
 }
 
