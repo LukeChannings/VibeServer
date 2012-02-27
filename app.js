@@ -24,6 +24,8 @@ global.settings = new Settings(function(){
 		
 			this.scan();
 		
+			collection.postScan();
+		
 		});
 	
 	});

@@ -199,7 +199,31 @@ function Collection(callback){
 						
 							if ( i == albums.length ){
 							
-								if ( callback ) callback();
+								event.emit('queryCollection','SELECT title, name, album.id from artist INNER JOIN album on artist.id = album.artist_id',function(err,res){
+								
+									if ( err ) throw err;
+									
+									(function next(i){
+									
+										if ( i === res.length )
+										{
+											// end.
+										}
+										else {
+											
+											event.emit('getAlbumArtURI',res[i].name,res[i].title,function(images){
+											
+												console.log(images);
+											
+												next(i + 1);
+											
+											});
+											
+										}
+									
+									})(0);
+									
+								});
 							
 							}
 							else

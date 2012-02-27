@@ -108,7 +108,7 @@ function Server(){
 			});
 		
 		});
-		 
+		
 		/**
 		 * getAlbumTracks
 		 * @description Lists the tracks belonging to a given album.
@@ -174,72 +174,53 @@ function Server(){
 		/**
 		 * getAlbumArtURI
 		 * @description Returns an array of URIs to album art. (small, medium, large.)
-		 * @param artist - (string) Artist name.
-		 * @param album - (string) Album name.
+		 * @param album_id - (string) Album id.
 		 * @param callback - function to be sent the result.
 		 */
-		socket.on('getAlbumArtURI',function(artist,album,callback){
-	
-			var request = require('request');
+		socket.on('getAlbumArtURI',function(album_id,callback){
+
+			if ( !album_id && callback ) callback("No album_id sent."); 
+			else if ( !album_id && !callback ) return; 
 			
 			var api_key = "6d97a6df16c5510dcd504956a0c6edb0";
 			
-			var uri = "http://ws.audioscrobbler.com/2.0/?format=json";
+			event.emit('queryCollection','SELECT title, name FROM artist INNER JOIN album ON artist.id = album.artist_id WHERE album.id = "' + album_id + '"',function(err,res){
 			
-			var query = uri + "&api_key=" + api_key + "&method=album.getinfo&artist=" + encodeURIComponent(artist) + "&album=" + encodeURIComponent(album);
-			
-			request({uri: query },function(err,res,body){
-			
-				if ( ! err && res.statusCode == 200){
+				if ( err ) throw err;
 				
-					var results = JSON.parse(body);
-					
-					if ( ! results.album )
+				var artist = encodeURIComponent(res[0].name);
+				
+				var album = encodeURIComponent(res[0].title);
+				
+				var q = "http://ws.audioscrobbler.com/2.0/?format=json&api_key=" + api_key + "&method=album.getinfo&artist=" + artist + "&album=" + album;
+				
+				var request = require('request');
+				
+				request(q,function(err,res,data){
+				
+					try{
+						var data = JSON.parse(data);
+					}
+					catch(ex)
 					{
-						callback("No Results with " + query);
+						console.error(ex);
 						
+						callback("No Match");
+					}
+					
+					if ( data.album )
+					{
+						callback(data.album.image[2]["#text"]);
 					}
 					else {
-					
-						callback(results.album.image,results.album.url);
-					
+						callback("No Match");
 					}
 				
-				}
-			
+				});
 			});
 		
 		});
 		
-		/**
-		 * getArtistImageURI
-		 * @description Returns an array of URIs for Artist images.
-		 * @param artist - (string) Artist name.
-		 * @param callback - (function) Callback function.
-		 */
-		socket.on('getArtistImageURI',function(artist,callback){
-		
-			var request = require('request');
-			
-			var api_key = "6d97a6df16c5510dcd504956a0c6edb0";
-			
-			var uri = "http://ws.audioscrobbler.com/2.0/?format=json";
-			
-			var query = uri + "&api_key=" + api_key + "&method=artist.getimages&artist=" + encodeURIComponent(artist);
-			
-			request({uri: query },function(err,res,body){
-			
-				if ( ! err && res.statusCode == 200){
-				
-					var results = JSON.parse(body);
-					
-					callback(results);
-				}
-			
-			});
-		
-		});
-	
 	});
 	
 	/**
@@ -276,7 +257,10 @@ function Server(){
 					
 					// tell the client we accept 206.
 					res.setHeader("Accept-Ranges", "bytes");
-				
+					
+					// make this dynamic!
+					res.setHeader('Content-Type','audio/mpeg');
+					
 					// get the file statistics.
 					var stat = fs.stat(path,function(err,stats){
 					
@@ -286,10 +270,6 @@ function Server(){
 						// if there is no range request.
 						if ( ! req.headers.range )
 						{
-						
-							// make this dynamic!
-							res.setHeader('Content-Type','audio/mpeg');
-						
 							// send the full file.
 							res.end(fs.readFile(path));
 						
