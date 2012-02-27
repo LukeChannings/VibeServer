@@ -198,22 +198,19 @@ function Server(){
 				
 				request(q,function(err,res,data){
 				
-					try{
+					if ( err ) console.error(err);
+				
+					else if ( data )
+					{
 						var data = JSON.parse(data);
-					}
-					catch(ex)
-					{
-						console.error(ex);
 						
-						callback("No Match");
-					}
-					
-					if ( data.album )
-					{
-						callback(data.album.image[2]["#text"]);
-					}
-					else {
-						callback("No Match");
+						if ( data.album )
+						{
+							callback(data.album.image[2]["#text"]);
+						}
+						else {
+							callback("No Match");
+						}
 					}
 				
 				});
