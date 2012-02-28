@@ -261,6 +261,14 @@ function Server(){
 					// get the file statistics.
 					var stat = fs.stat(path,function(err,stats){
 					
+						if ( !stats )
+						{
+							
+							socket.emit('message','Song does not exist.');
+							
+							return;
+						}
+					
 						// get the length of the file.
 						var total = stats.size;
 						
