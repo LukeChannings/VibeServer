@@ -180,98 +180,18 @@ function Collection(callback){
 	}
 
 	/**
-	 * postScan
-	 * @description Post-scan data gathering. Gets album art, album duration, number of albums an artist has, etc.
+	 * postAdd
+	 * @description updates collection metadata after adding tracks. Sets number of children for artists and albums, and gets albumart.
+	 * @param callback - (function) Called once postAdd has finished.
 	 */
-	this.postScan = function(callback){
-		
-		// set album_count for each artist.
-		sock.all('SELECT id FROM artist',function(err,artists){
-		
-			(function next(i){
-			
-				if ( i == artists.length ){
-				
-					// set track_count for each album.
-					sock.all('SELECT id FROM album',function(err,albums){
-					
-						(function next(i){
-						
-							if ( i == albums.length ){
-							
-								event.emit('queryCollection','SELECT title, name, album.id from artist INNER JOIN album on artist.id = album.artist_id',function(err,res){
-								
-									if ( err ) throw err;
-									
-									(function next(i){
-									
-										if ( i === res.length )
-										{
-											// end.
-										}
-										else {
-											
-											event.emit('getAlbumArtURI',res[i].name,res[i].title,function(images){
-											
-												console.log(images);
-											
-												next(i + 1);
-											
-											});
-											
-										}
-									
-									})(0);
-									
-								});
-							
-							}
-							else
-							{
-								sock.all('SELECT count(*) FROM track WHERE album_id = "' + albums[i].id + '"',function(err,data){
-								
-									var track_count = parseInt(data[0]['count(*)']);
-								
-									sock.all('UPDATE album SET track_count = ' + track_count + ' WHERE id = "' + albums[i].id + '"',function(err){
-									
-										if ( err ) throw err;
-										
-										else next(i + 1);
-									
-									});
-								
-								
-								});
-							}
-						
-						})(0);
-					
-					});
-				
-				}
-				else
-				{
-					sock.all('SELECT count(*) FROM album WHERE artist_id = "' + artists[i].id + '"',function(err,data){
-					
-						var album_count = parseInt(data[0]['count(*)']);
-					
-						sock.all('UPDATE artist SET album_count = ' + album_count + ' WHERE id = "' + artists[i].id + '"',function(err){
-						
-							if ( err ) throw err;
-							
-							else next(i + 1);
-						
-						});
-					
-					
-					});
-				}
-			
-			})(0);
-		
-		});
-		
-	}
+	this.postAdd = function(){}
+	
+	/**
+	 * postDel
+	 * @description updates collection metadata after deleting tracks. Deletes orphaned artists or albums.
+	 * @param callback - (function) Called once postDel has finished.
+	 */
+	this.postDel = function(){}
 
 	// event listeners.
 	event.on('addTrackToCollection',function(path,callback){
@@ -296,7 +216,13 @@ function Collection(callback){
 	
 	});
 
-	event.on('postScan',function(callback){
+	event.on('postAdd',function(callback){
+		
+		self.postScan(callback);
+		
+	});
+	
+	event.on('postDel',function(callback){
 		
 		self.postScan(callback);
 		

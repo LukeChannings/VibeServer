@@ -16,6 +16,7 @@ function Scanner(callback){
 	this.itemsToDel = 0;
 	this.itemsDeleted = 0;
 
+	// usual nonsense.
 	var self = this;
 
 	/**
