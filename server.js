@@ -227,11 +227,14 @@ function Server(){
 	 */
 	httpServer.on('request',function(req,res){
 	
-		if ( req.url == "/stream" )
+		// if the request is for a stream but an id is not provided.
+		if ( /\/stream\/?$/.test(req.url) )
 		{
+			// Return the required URI scheme.
 			res.end("Use /stream/:track_id");
 		}
 		
+		// if there is a request and an id is present.
 		else if ( /\/stream\/.+/.test(req.url) )
 		{
 			// get the id of the track.
@@ -243,8 +246,19 @@ function Server(){
 				// if there was an error fetching then throw it.
 				if ( err ) throw err;
 				
+				// if the specified id doesn't match anything in the database...
+				if ( ! result[0] ){
+				
+					// send a 404.
+					res.statusCode = "404 Not Found";
+					
+					// end the response.
+					res.end("No track matching specified ID found in the collection.");
+				
+				}
+				
 				// if there was a result..
-				else if ( result[0] ){
+				else {
 					
 					// decode the path.
 					var path = decodeURIComponent(result[0].path);
@@ -263,9 +277,9 @@ function Server(){
 					
 						if ( !stats )
 						{
-							
-							socket.emit('message','Song does not exist.');
-							
+						
+							console.error(path + " does not exist.");
+						
 							return;
 						}
 					
@@ -326,13 +340,6 @@ function Server(){
 						}
 					});
 					
-				}
-				
-				// if there was no result, the track_id is invalid.
-				else {
-				
-					res.end("Invalid track_id.");
-				
 				}
 			
 			});
