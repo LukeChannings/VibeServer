@@ -180,53 +180,6 @@ function Server(){
 			}
 		});
 		
-		/**
-		 * getAlbumArtURI
-		 * @description Returns an array of URIs to album art. (small, medium, large.)
-		 * @param album_id - (string) Album id.
-		 * @param callback - function to be sent the result.
-		 */
-		socket.on('getAlbumArtURI',function(album_id,callback){
-
-			if ( !album_id && callback ) callback("No album_id sent."); 
-			else if ( !album_id && !callback ) return; 
-			
-			var api_key = "6d97a6df16c5510dcd504956a0c6edb0";
-			
-			event.emit('queryCollection','SELECT title, name FROM artist INNER JOIN album ON artist.id = album.artist_id WHERE album.id = "' + album_id + '"',function(err,res){
-			
-				if ( err ) throw err;
-				
-				var artist = encodeURIComponent(res[0].name);
-				
-				var album = encodeURIComponent(res[0].title);
-				
-				var q = "http://ws.audioscrobbler.com/2.0/?format=json&api_key=" + api_key + "&method=album.getinfo&artist=" + artist + "&album=" + album;
-				
-				var request = require('request');
-				
-				request(q,function(err,res,data){
-				
-					if ( err ) console.error(err);
-				
-					else if ( data )
-					{
-						var data = JSON.parse(data);
-						
-						if ( data.album )
-						{
-							callback(data.album.image[2]["#text"]);
-						}
-						else {
-							callback("No Match");
-						}
-					}
-				
-				});
-			});
-		
-		});
-		
 	});
 	
 	/**
