@@ -269,8 +269,11 @@ function Server(){
 					// tell the client we accept 206.
 					res.setHeader("Accept-Ranges", "bytes");
 					
-					// make this dynamic!
-					res.setHeader('Content-Type','audio/mpeg');
+					// determine the MIME type.
+					var MIME = ( ! path.match(/\.ogg$/) ) ? 'audio/mpeg' : 'audio/ogg';
+					
+					// set the MIME.
+					res.setHeader('Content-Type',MIME);
 					
 					// get the file statistics.
 					var stat = fs.stat(path,function(err,stats){
