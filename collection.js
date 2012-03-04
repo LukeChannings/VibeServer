@@ -47,14 +47,6 @@ function Collection(callback){
 			
 			// define artist.
 			sock.run('CREATE TABLE IF NOT EXISTS artist(id VARCHAR(255) NOT NULL PRIMARY KEY,name VARCHAR(255) NOT NULL,album_count INT(10))');
-			
-			sock.run('CREATE TRIGGER IF NOT EXISTS remove_album DELETE ON album BEGIN DELETE FROM track WHERE album_id = OLD.id; END');
-			
-			sock.run('CREATE TRIGGER IF NOT EXISTS remove_artist DELETE ON album BEGIN DELETE FROM album WHERE artist_id = OLD.id; END',function(){
-			
-				if ( callback ) callback.call(self);
-			
-			});
 		
 		});
 		
