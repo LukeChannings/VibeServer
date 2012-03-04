@@ -237,13 +237,7 @@ function Collection(callback){
 	
 	});
 
-	event.on('postAdd',function(callback){
-		
-		self.postScan(callback);
-		
-	});
-	
-	event.on('postDel',function(callback){
+	event.on('postScan',function(callback){
 		
 		self.postScan(callback);
 		
