@@ -46,7 +46,11 @@ function Collection(callback){
 			sock.run('CREATE TABLE IF NOT EXISTS album(id VARCHAR(255) NOT NULL PRIMARY KEY,title VARCHAR(255) NOT NULL,artist_id VARCHAR(255) NOT NULL,track_of INT(4),disk_no INT(4),disk_of INT(4),genre VARCHAR(255),year INT(5),art_uri VARCHAR(255),duration int,track_count INT(10),FOREIGN KEY (artist_id) REFERENCES artist(id))');
 			
 			// define artist.
-			sock.run('CREATE TABLE IF NOT EXISTS artist(id VARCHAR(255) NOT NULL PRIMARY KEY,name VARCHAR(255) NOT NULL,album_count INT(10))');
+			sock.run('CREATE TABLE IF NOT EXISTS artist(id VARCHAR(255) NOT NULL PRIMARY KEY,name VARCHAR(255) NOT NULL,album_count INT(10))',function(){
+				
+				if ( callback ) callback();
+				
+			});
 		
 		});
 		
