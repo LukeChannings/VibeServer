@@ -97,8 +97,8 @@ function Scanner(callback){
 				// get the stats for the current file.
 				fs.stat(file,function(err,stat){
 				
-					// if the file is a song
-					if ( /\.(mp3|ogg|m4a|flac)$/.test(file) )
+					// if the file is an MP3 or OGG.
+					if ( /\.(mp3|ogg)$/.test(file) )
 					{
 					
 						// add the file to the results.
