@@ -180,18 +180,39 @@ function Collection(callback){
 	}
 
 	/**
+	 * postScan
+	 * @description Meta-method for running postAdd and postDel.
+	 */
+	this.postScan = function(callback){
+	
+		// run postAdd.
+		self.postAdd(function(){
+		
+			// once postAdd has finished, run postDel.
+			self.postDel(function(){
+			
+				// once postDel has finished run the callback. (if there is one.)
+				if ( callback ) callback();
+			
+			});
+		
+		});
+	
+	}
+
+	/**
 	 * postAdd
 	 * @description updates collection metadata after adding tracks. Sets number of children for artists and albums, and gets albumart.
 	 * @param callback - (function) Called once postAdd has finished.
 	 */
-	this.postAdd = function(){}
+	this.postAdd = function(callback){}
 	
 	/**
 	 * postDel
 	 * @description updates collection metadata after deleting tracks. Deletes orphaned artists or albums.
 	 * @param callback - (function) Called once postDel has finished.
 	 */
-	this.postDel = function(){}
+	this.postDel = function(callback){}
 
 	// event listeners.
 	event.on('addTrackToCollection',function(path,callback){
