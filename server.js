@@ -152,18 +152,27 @@ function Server(){
 		 * @param rating (int) - The rating of the track. (0-5)
 		 * @param callback (function) - called once the operation is complete. (Returns true or false for success status.)
 		 */
-		socket.on('setRating',function(track_id,rating){
+		socket.on('setRating',function(track_id,rating,callback){
 		
+			// check for an ID and rating to set.
 			if ( track_id && rating )
 			{
+				// update the track entry with the new rating.
 				event.emit('queryCollection','UPDATE track SET rating=' + parseInt(rating) + ' WHERE id = "' + track_id + '"',function(err){
 				
 					if ( err ){
-						callback(err);
+					
+						// callback with the error.
+						if ( callback ) callback(err);
+						
+						// throw the error.
 						throw err;
 					}
 					else {
-						callback(true);
+					
+						// callback when we're done.
+						if ( callback ) callback();
+					
 					}
 				
 				});
