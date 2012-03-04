@@ -80,21 +80,31 @@ function Collection(callback){
 		
 		parser.on('done',function(){
 		
-			var ffmpeg = require('fluent-ffmpeg').Metadata;
+			// get ffmpeg metadata.
+			var ffmpeg = require('fluent-ffmpeg') || null;
 			
-			ffmpeg.get(path,function(data){
+			// if ffmpeg was successfully included.
+			if ( ffmpeg )
+			{
+				// get the metadata for the path.
+				ffmpeg.Metadata.get(path,function(data){
+				
+					metadata.duration = data.durationsec;
+				
+					metadata.bitrate = data.audio.bitrate;
+				
+					metadata.sample_rate = data.audio.sample_rate;
+				
+					callback(metadata);
+				
+					parser = ffmpeg = null;
+				
+				});
+		
+			}
 			
-				metadata.duration = data.durationsec;
-			
-				metadata.bitrate = data.audio.bitrate;
-			
-				metadata.sample_rate = data.audio.sample_rate;
-			
-				callback(metadata);
-			
-				parser = ffmpeg = null;
-			
-			});
+			// if ffmpeg fails just callback with the untouched metadata object.
+			else callback(metadata);
 		
 		});
 	
