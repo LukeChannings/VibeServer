@@ -205,7 +205,44 @@ function Collection(callback){
 	 * @description updates collection metadata after adding tracks. Sets number of children for artists and albums, and gets albumart.
 	 * @param callback - (function) Called once postAdd has finished.
 	 */
-	this.postAdd = function(callback){}
+	this.postAdd = function(callback){
+	
+		function countArtistChildren(data,callback){}
+		
+		function countAlbumChildren(data,callback){}
+	
+		function getAlbumArt(){}
+	
+		// list all artist IDs.
+		event.emit('queryCollection','SELECT id FROM artist',function(err,data){
+		
+			// log error
+			if ( err ) console.error(err);
+		
+			// send the data to countArtistChildren.
+			countArtistChildren(data,function(){
+			
+				// when countArtistChildren has finished list album IDs.
+				event.emit('queryCollection','SELECT id FROM album',function(err,data){
+				
+					// log error
+					if ( err ) console.error(err);
+				
+					// pass the ids to countAlbumChildren.
+					countAlbumChildren(data,function(){
+					
+						// when countAlbumChildren has finished run the callback.
+						if ( callback ) callback();
+					
+					});
+				
+				});
+			
+			});
+		
+		});
+	
+	}
 	
 	/**
 	 * postDel
