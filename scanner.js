@@ -64,7 +64,7 @@ function Scanner(callback){
 
 	/**
 	 * walk
-	 * @description returns a list of all mp3, ogg, m4a and flac files in a specified directory.
+	 * @description returns a list of all mp3 and ogg files in a specified directory.
 	 * @param path - path to search (string.)
 	 * @param done - callback to be executed when walking has completed. (function.)
 	 */
