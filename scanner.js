@@ -79,6 +79,14 @@ function Scanner(callback){
 		// list the files in the path.
 		fs.readdir(path,function(err,list){
 		
+			if ( err  )
+			{
+				setState("SCAN_FAIL");
+				
+				throw "Path : " + path + " does not exist.";
+				
+			}
+		
 			// loop through the files in the path.
 			(function next(i){
 			
