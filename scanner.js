@@ -330,7 +330,11 @@ function Scanner(callback){
 									settings.set('collectionChecksum',checksum);
 								
 									// when that track has been added read the next track.
-									addTracks(++i);
+									process.nextTick(function(){
+									
+										addTracks(++i);
+									
+									});
 								
 								});
 								

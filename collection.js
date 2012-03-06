@@ -1,7 +1,7 @@
 var sqlite = require('sqlite3');
-var musicmetadata = require('musicmetadata');
 var fs = require('fs');
 var crypto = require('crypto');
+var taglib = require('taglib');
 
 /**
  * Collection
@@ -40,13 +40,13 @@ function Collection(callback){
 			sock.run('PRAGMA foreign_keys = ON');
 
 			// define track.
-			sock.run('CREATE TABLE IF NOT EXISTS track(id VARCHAR(255) NOT NULL PRIMARY KEY,title VARCHAR(255) NOT NULL,path VARCHAR(255) NOT NULL,album_id VARCHAR(255) NOT NULL,duration INT(20),track_no INT(4),plays INT(20),rating INT(1),bitrate INT(10),sample_rate INT(20),FOREIGN KEY (album_id) REFERENCES album(id))');
+			sock.run('CREATE TABLE track(id VARCHAR(255),album_id VARCHAR(255),artist_id VARCHAR(255),name VARCHAR(255),path VARCHAR(255),no INT(10),length INT(10),bitrate INT(10),samplerate INT(10),PRIMARY KEY(id),FOREIGN KEY(album_id) REFERENCES album(id),FOREIGN KEY(artist_id) REFERENCES artist(id))');
 			
 			// define album.
-			sock.run('CREATE TABLE IF NOT EXISTS album(id VARCHAR(255) NOT NULL PRIMARY KEY,title VARCHAR(255) NOT NULL,artist_id VARCHAR(255) NOT NULL,track_of INT(4),disk_no INT(4),disk_of INT(4),genre VARCHAR(255),year INT(5),art_uri VARCHAR(255),duration int,track_count INT(10),FOREIGN KEY (artist_id) REFERENCES artist(id))');
+			sock.run('CREATE TABLE album(id VARCHAR(255),artist_id VARCHAR(255),name VARCHAR(255),year INT(5),genre VARCHAR(255),art_resource VARCHAR(255),tracks INT(5),PRIMARY KEY(id),FOREIGN KEY(artist_id) REFERENCES artist(id))');
 			
 			// define artist.
-			sock.run('CREATE TABLE IF NOT EXISTS artist(id VARCHAR(255) NOT NULL PRIMARY KEY,name VARCHAR(255) NOT NULL,album_count INT(10))',function(){
+			sock.run('CREATE TABLE artist(id VARCHAR(255),name VARCHAR(255),albums INT(10),art_resource VARCHAR(255),PRIMARY KEY(id))',function(){
 				
 				if ( callback ) callback();
 				
@@ -62,52 +62,66 @@ function Collection(callback){
 	 */
 	function getMetadata(path,callback){
 	
-		var parser = new musicmetadata(fs.createReadStream(path));
-		
-		var metadata;
-		
-		// set a 2 second timeout.
-		var timeout = setTimeout("callback()", 2000);
-		
-		parser.on('metadata',function(data){
-			
-			// clear the timeout.
-			clearTimeout(timeout);
-			
-			metadata = data;
-			
-		})
-		
-		parser.on('done',function(){
-		
-			// get ffmpeg metadata.
-			var ffmpeg = require('fluent-ffmpeg') || null;
-			
-			// if ffmpeg was successfully included.
-			if ( ffmpeg )
-			{
-				// get the metadata for the path.
-				ffmpeg.Metadata.get(path,function(data){
-				
-					metadata.duration = data.durationsec;
-				
-					metadata.bitrate = data.audio.bitrate;
-				
-					metadata.sample_rate = data.audio.sample_rate;
-				
-					callback(metadata);
-				
-					parser = ffmpeg = null;
-				
-				});
-		
-			}
-			
-			// if ffmpeg fails just callback with the untouched metadata object.
-			else callback(metadata);
-		
-		});
+		// if there is no path then callback with error.
+		if ( ! path )
+		{
+			callback("No path.");
+			return;
+		}
 	
+		// get the metadata.
+		var data = {
+			tags : new taglib.Tag(path),
+			properties : new taglib.AudioProperties(path)
+		}
+	
+		// calculate hashes.
+		var artistid = crypto.createHash('md5').update(data.tags.artist).digest("hex");
+		var albumid = crypto.createHash('md5').update(data.tags.artist + data.tags.album).digest("hex");
+		var trackid = crypto.createHash('md5').update(data.tags.title + data.tags.album).digest("hex");
+	
+		// check if the metadata is broken.
+		if ( (artistid == albumid) && (albumid == trackid) )
+		{
+			// callback with error.
+			callback("Bad Metadata",{path : path});
+			return;
+		}
+		
+		// return metadata object.	
+		callback(false,{
+			"track" : {
+				"id" : trackid,
+				"album_id" : albumid,
+				"artist_id" : artistid,
+				"name" : data.tags.title,
+				"path" : path,
+				"index" : data.tags.track,
+				"length" : data.properties.length,
+				"bitrate" : data.properties.bitrate,
+				"samplerate" : data.properties.sampleRate
+			},
+			"album" : {
+				"id" : albumid,
+				"artist_id" : artistid,
+				"name" : data.tags.album,
+				"year" : parseInt(data.tags.year),
+				"genre" : data.tags.genre,
+				"art_resource" : "",
+				"track_count" : 0
+			},
+			"artist" : {
+				"id" : artistid,
+				"name" : data.tags.artist,
+				"art_resource" : ""
+			}
+		});
+		
+		// cleanup.
+		delete data.tags;
+		delete data.properties;
+		
+		return 0;
 	}
 	
 	/**
@@ -116,66 +130,59 @@ function Collection(callback){
 	 */
 	this.addTrackToCollection = function(path,callback){
 	
-		getMetadata(path, function(metadata){
-		
-			if ( ! metadata ){
-			
-				console.error("Skipping " + path);
-			
-				if ( callback ) callback();
-			
+		getMetadata(path, function(err,metadata){
+
+			if ( err )
+			{
+				// log the error.
+				if ( err == "Bad Metadata." ) console.error("Skipping " + metadata.path + ' ' + err);
+				else console.error(err);
+				
+				// go to the next track.
+				callback();
 			}
-		
-			sock.serialize(function(){
-			
-				// make ids.
-				var artistid = crypto.createHash('md5').update(metadata.artist.join('')).digest("hex");
-				var albumid = crypto.createHash('md5').update(metadata.artist.join('') + metadata.album).digest("hex");
-				var trackid = crypto.createHash('md5').update(metadata.album + metadata.title).digest("hex");;
-			
-				if ( (artistid === albumid) && (albumid === trackid) )
-				{
-					console.error("Skipping " + path + ". Bad Metadata.");
-					
-					if ( callback ) callback();
-					
-				}
-				else
-				{
-					// Insert artist.
-					sock.run('INSERT OR IGNORE INTO artist (id,name) VALUES(?,?)',[artistid, metadata.artist[0]]);
-				
-					// Insert album.
-					sock.run('INSERT OR IGNORE INTO album (id,title,track_of,disk_no,disk_of,artist_id,year,genre) VALUES(?,?,?,?,?,?,?,?)',[
-						albumid,
-						metadata.album,
-						metadata.track.of,
-						metadata.disk.no,
-						metadata.disk.of,
-						artistid,
-						metadata.year,
-						metadata.genre[0]
+			else
+			{
+				sock.serialize(function(){
+
+					// insert artist.
+					sock.run('INSERT OR IGNORE INTO artist (id,name) VALUES(?,?)',[
+						metadata.artist.id,
+						metadata.artist.name
 					]);
-				
-					// insert track.
-					sock.run('INSERT INTO track (id,title,path,track_no,album_id,duration,bitrate,sample_rate) VALUES(?,?,?,?,?,?,?,?)',[
-						trackid,
-						metadata.title,
-						encodeURIComponent(path),
-						metadata.track.no,
-						albumid,
-						metadata.duration,
-						metadata.bitrate,
-						metadata.sample_rate
-					],function(){
 					
-						// when we're done run the callback.
-						if ( callback ) callback();
+					// insert album.
+					sock.run('INSERT OR IGNORE INTO album (id,artist_id,name,year,genre) VALUES(?,?,?,?,?)',[
+						metadata.album.id,
+						metadata.album.artist_id,
+						metadata.album.name,
+						metadata.album.year,
+						metadata.album.genre
+					]);
+					
+					// insert track.
+					sock.run('INSERT INTO track (id,album_id,artist_id,name,path,no,length,bitrate,samplerate) VALUES(?,?,?,?,?,?,?,?,?)',[
+						metadata.track.id,
+						metadata.track.album_id,
+						metadata.track.artist_id,
+						metadata.track.name,
+						metadata.track.path,
+						metadata.track.index,
+						metadata.track.length,
+						metadata.track.bitrate,
+						metadata.track.samplerate
+					],function(){
+						
+						if ( callback ) process.nextTick(function(){
+						
+							callback();
+						
+						});
 					
 					});
-				}
-			});
-			
+				
+				});
+			}
 		});
 	
 	}
