@@ -20,7 +20,7 @@ function Settings(callback){
 	
 		fs.writeFile('settings.json',settings,function(err){
 			
-			if ( err ) throw err;
+			if ( err ) console.error(err);
 			else console.log("settings.json has been updated.");
 			
 		});
@@ -31,7 +31,7 @@ function Settings(callback){
 	
 		fs.readFile('settings.json',function(err,data){
 		
-			if ( err ) throw "No settings file.";
+			if ( err ) console.error("No settings file.");
 			else {
 				
 				try{

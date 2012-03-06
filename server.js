@@ -30,7 +30,7 @@ function Server(){
 		
 			event.emit('queryCollection','SELECT name, id, album_count FROM artist WHERE name != "" ORDER BY name COLLATE NOCASE',function(err,res){
 				
-				if ( err ) throw err;
+				if ( err ) console.error(err);
 				
 				else{
 				
@@ -49,7 +49,7 @@ function Server(){
 		
 			event.emit('queryCollection','SELECT title, id, track_count FROM album WHERE title != "" ORDER BY title COLLATE NOCASE'),function(err,res){
 			
-				if ( err ) throw err;
+				if ( err ) console.error(err);
 			
 				callback(res);
 			
@@ -66,7 +66,7 @@ function Server(){
 		
 			event.emit('queryCollection','SELECT title, id, duration, track_no FROM track WHERE title != ""',function(err,res){
 			
-				if ( err ) throw err;
+				if ( err ) console.error(err);
 				
 				callback(res);
 			
@@ -83,7 +83,7 @@ function Server(){
 		
 			event.emit('queryCollection','SELECT DISTINCT genre FROM album WHERE genre != "" COLLATE NOCASE'),function(err,res){
 			
-				if ( err ) throw err;
+				if ( err ) console.error(err);
 			
 				callback(res);
 			
@@ -101,7 +101,7 @@ function Server(){
 		
 			event.emit('queryCollection','SELECT title, id, track_of, track_count FROM album WHERE artist_id = "' + artist_id + '"',function(err,res){
 			
-				if ( err ) throw err;
+				if ( err ) console.error(err);
 			
 				callback(res);
 			
@@ -119,7 +119,7 @@ function Server(){
 		
 			event.emit('queryCollection','SELECT title, id, track_no, duration, bitrate, sample_rate FROM track WHERE album_id = "' + album_id + '"',function(err,res){
 			
-				if ( err ) throw err;
+				if ( err ) console.error(err);
 			
 				callback(res);
 			
@@ -137,7 +137,7 @@ function Server(){
 		
 			event.emit('queryCollection','SELECT title,id FROM track WHERE artist_id = "' + artist_id + '"',function(err,res){
 			
-				if ( err ) throw err;
+				if ( err ) console.error(err);
 				
 				callback(res);
 			
@@ -166,7 +166,7 @@ function Server(){
 						if ( callback ) callback(err);
 						
 						// throw the error.
-						throw err;
+						console.error(err);
 					}
 					else {
 					
@@ -206,7 +206,7 @@ function Server(){
 			event.emit('queryCollection','SELECT path FROM track WHERE id = "' + track_id + '"',function(err,result){
 			
 				// if there was an error fetching then throw it.
-				if ( err ) throw err;
+				if ( err ) console.error(err);
 				
 				// if the specified id doesn't match anything in the database...
 				if ( ! result[0] ){

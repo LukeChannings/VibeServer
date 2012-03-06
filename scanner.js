@@ -70,8 +70,8 @@ function Scanner(callback){
 	 */
 	function walk(path, done) {
 
-		// if there is no path or done function then throw an error.
-		if ( !path || !done ) throw "walk: missing parameters.";
+		// if there is no path or done function then log an error.
+		if ( !path || !done ) console.error("walk: missing parameters.");
 		
 		// initialise an array to store the results in.
 		var result = [];
@@ -83,7 +83,7 @@ function Scanner(callback){
 			{
 				setState("SCAN_FAIL");
 				
-				throw "Path : " + path + " does not exist.";
+				console.error("Path : " + path + " does not exist.");
 				
 			}
 		
@@ -124,8 +124,8 @@ function Scanner(callback){
 						// run this function on that directory.
 						walk(file,function(err,list){
 							
-							// if there was an error then throw it.
-							if ( err ) throw err;
+							// if there was an error then log it.
+							if ( err ) console.error(err);
 							
 							// concatenate the previous results with the subdirectory results.
 							result = result.concat(list);
@@ -220,8 +220,8 @@ function Scanner(callback){
 		// walk the path.
 		walk(path,function(err,result){
 			
-			// if there was an error walking then throw it.
-			if ( err ) throw err;
+			// if there was an error walking then log it.
+			if ( err ) console.error(err);
 			
 			// create a hash for the results.
 			var checksum = crypto.createHash('md5').update(result.join()).digest('hex');
