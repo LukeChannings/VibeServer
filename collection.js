@@ -133,37 +133,47 @@ function Collection(callback){
 				var albumid = crypto.createHash('md5').update(metadata.artist.join('') + metadata.album).digest("hex");
 				var trackid = crypto.createHash('md5').update(metadata.album + metadata.title).digest("hex");;
 			
-				// Insert artist.
-				sock.run('INSERT OR IGNORE INTO artist (id,name) VALUES(?,?)',[artistid, metadata.artist[0]]);
-			
-				// Insert album.
-				sock.run('INSERT OR IGNORE INTO album (id,title,track_of,disk_no,disk_of,artist_id,year,genre) VALUES(?,?,?,?,?,?,?,?)',[
-					albumid,
-					metadata.album,
-					metadata.track.of,
-					metadata.disk.no,
-					metadata.disk.of,
-					artistid,
-					metadata.year,
-					metadata.genre[0]
-				]);
-			
-				// insert track.
-				sock.run('INSERT INTO track (id,title,path,track_no,album_id,duration,bitrate,sample_rate) VALUES(?,?,?,?,?,?,?,?)',[
-					trackid,
-					metadata.title,
-					encodeURIComponent(path),
-					metadata.track.no,albumid,
-					metadata.duration,
-					metadata.bitrate,
-					metadata.sample_rate
-				],function(){
-				
-					// when we're done run the callback.
+				if ( (artistid === albumid) && (albumid === trackid) )
+				{
+					console.error("Skipping " + path + ". Bad Metadata.");
+					
 					if ( callback ) callback();
+					
+				}
+				else
+				{
+					// Insert artist.
+					sock.run('INSERT OR IGNORE INTO artist (id,name) VALUES(?,?)',[artistid, metadata.artist[0]]);
 				
-				});
+					// Insert album.
+					sock.run('INSERT OR IGNORE INTO album (id,title,track_of,disk_no,disk_of,artist_id,year,genre) VALUES(?,?,?,?,?,?,?,?)',[
+						albumid,
+						metadata.album,
+						metadata.track.of,
+						metadata.disk.no,
+						metadata.disk.of,
+						artistid,
+						metadata.year,
+						metadata.genre[0]
+					]);
 				
+					// insert track.
+					sock.run('INSERT INTO track (id,title,path,track_no,album_id,duration,bitrate,sample_rate) VALUES(?,?,?,?,?,?,?,?)',[
+						trackid,
+						metadata.title,
+						encodeURIComponent(path),
+						metadata.track.no,
+						albumid,
+						metadata.duration,
+						metadata.bitrate,
+						metadata.sample_rate
+					],function(){
+					
+						// when we're done run the callback.
+						if ( callback ) callback();
+					
+					});
+				}
 			});
 			
 		});
@@ -215,31 +225,121 @@ function Collection(callback){
 	 */
 	this.postAdd = function(callback){
 	
-		function countArtistChildren(data,callback){}
+		/**
+		 * countAlbumTracks
+		 * @description counts the number of tracks that belong to an album and updates the database attribute.
+		 * @param data - (array) an array of album IDs.
+		 * @param callback - (function) function to be executed once the function has finished. 
+		 */
+		function countAlbumTracks(data,callback){
 		
-		function countAlbumChildren(data,callback){}
+			// next loop.
+			(function next(i){
+			
+				// if we've reached the final id
+				if ( ! data[i] )
+				{
+					// execute the callback.
+					if ( callback ) callback();
+				}
+				else
+				{
+					// get the number of tracks belonging to an album.
+					event.emit('queryCollection','SELECT count(*) FROM track WHERE album_id = "' + data[i].id + '"',function(err,res){
+					
+						// if the query failed log the error to stderr.
+						if ( err ) console.error(err);
+					
+						// parse the result.
+						var count = parseInt(res[0]['count(*)']);
+					
+						// if the album has no tracks...
+						if ( count === 0 )
+						{
+							// delete the album from the database. (cleans entries orphaned by SCAN_DEL.)
+							event.emit('queryCollection','DELETE FROM album WHERE id = "' + data[i].id + '"',function(){next(++i)});
+						}
+						else{
+							
+							// update the album track count.
+							event.emit('queryCollection','UPDATE album SET track_count = ' + count + ' WHERE id = "' + data[i].id + '"',function(){next(++i)});
+							
+						}
+						
+					});
+				}
+			})(0);
+		
+		}
 	
+		/**
+		 * countArtistAlbums
+		 * @description counts the number of albums that belong to an artist and updates the database attribute.
+		 * @param data - (array) an array of artist IDs.
+		 * @param callback - (function) function to be executed once the function has finished. 
+		 */
+		function countArtistAlbums(data,callback){
+		
+			// next loop.
+			(function next(i){
+			
+				// if we've reached the final id
+				if ( ! data[i] )
+				{
+					// execute the callback.
+					if ( callback ) callback();
+				}
+				else
+				{
+					// get the number of albums belonging to an artist.
+					event.emit('queryCollection','SELECT count(*) FROM album WHERE artist_id = "' + data[i].id + '"',function(err,res){
+					
+						// if the query failed log the error to stderr.
+						if ( err ) console.error(err);
+					
+						// parse the result.
+						var count = parseInt(res[0]['count(*)']);
+					
+						// if the artist has no albums...
+						if ( count === 0 )
+						{
+							// delete the artist from the database.  (cleans entries orphaned by SCAN_DEL.)
+							event.emit('queryCollection','DELETE FROM artist WHERE id = "' + data[i].id + '"',function(){next(++i)});
+						}
+						else{
+							
+							// update the artist album count.
+							event.emit('queryCollection','UPDATE artist SET album_count = ' + count + ' WHERE id = "' + data[i].id + '"',function(){next(++i)});
+							
+						}
+						
+					});
+				}
+			})(0);
+		
+		}
+		
 		function getAlbumArt(){}
 	
-		// list all artist IDs.
-		event.emit('queryCollection','SELECT id FROM artist',function(err,data){
+		// list all album IDs.
+		event.emit('queryCollection','SELECT id FROM album',function(err,data){
 		
-			// log error
+			// log any errors
 			if ( err ) console.error(err);
 		
-			// send the data to countArtistChildren.
-			countArtistChildren(data,function(){
+			// send the data to countAlbumTracks.
+			countAlbumTracks(data,function(){
 			
-				// when countArtistChildren has finished list album IDs.
-				event.emit('queryCollection','SELECT id FROM album',function(err,data){
+				// when countAlbumTracks has finished list artist IDs.
+				event.emit('queryCollection','SELECT id FROM artist',function(err,data){
 				
-					// log error
+					// log any errors
 					if ( err ) console.error(err);
 				
-					// pass the ids to countAlbumChildren.
-					countAlbumChildren(data,function(){
+					// pass the ids to countArtistAlbums.
+					countArtistAlbums(data,function(){
 					
-						// when countAlbumChildren has finished run the callback.
+						// when countArtistAlbums has finished run the callback.
 						if ( callback ) callback();
 					
 					});

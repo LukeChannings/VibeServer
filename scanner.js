@@ -36,7 +36,7 @@ function Scanner(callback){
 		if ( state == "SCAN_ADD" && no && of && path )
 		{
 			// log the percent of tracks scanned and the path of the current item being scanned.
-			console.log("Added " + no + ' of ' + of + ' - ' + path);
+			console.log("Adding " + no + ' of ' + of + ' - ' + path);
 			
 			// set the indexes.
 			self.itemsToAdd = of;
@@ -45,7 +45,7 @@ function Scanner(callback){
 		}
 		else if ( state == "SCAN_DEL" && no && of && path )
 		{
-			console.log("Removed: " + no + " of " + of + " - " + path);
+			console.log("Removing: " + no + " of " + of + " - " + path);
 			
 			// set the indexes.
 			self.itemsToDel = of;
@@ -381,8 +381,10 @@ function Scanner(callback){
 							event.emit('addTrackToCollection',result[i],function(){
 							
 								// when that track has been added, read the next one.
-								next(++i);
-							
+								process.nextTick(function(){
+								
+									next(++i);
+								});
 							});
 						
 						}
