@@ -118,7 +118,13 @@ function Collection(callback){
 	
 		getMetadata(path, function(metadata){
 		
-			if ( ! metadata ) throw "Bad metadata on " + path;
+			if ( ! metadata ){
+			
+				console.error("Skipping " + path);
+			
+				if ( callback ) callback();
+			
+			}
 		
 			sock.serialize(function(){
 			
@@ -128,37 +134,33 @@ function Collection(callback){
 				var trackid = crypto.createHash('md5').update(metadata.album + metadata.title).digest("hex");;
 			
 				// Insert artist.
-				sock.run('INSERT OR IGNORE INTO artist (id,name) VALUES("' + artistid + '","' + metadata.artist.join('') + '")')
+				sock.run('INSERT OR IGNORE INTO artist (id,name) VALUES(?,?)',[artistid, metadata.artist[0]]);
 			
 				// Insert album.
-				sock.run('INSERT OR IGNORE INTO album (id,title,track_of,disk_no,disk_of,artist_id,year,genre) VALUES(?,?,?,?,?,?,?,?)',
-				{
-					1: albumid,
-					2: metadata.album,
-					3: metadata.track.of,
-					4: metadata.disk.no,
-					5: metadata.disk.of,
-					6: artistid,
-					7: metadata.year,
-					8: metadata.genre[0]
-				});
+				sock.run('INSERT OR IGNORE INTO album (id,title,track_of,disk_no,disk_of,artist_id,year,genre) VALUES(?,?,?,?,?,?,?,?)',[
+					albumid,
+					metadata.album,
+					metadata.track.of,
+					metadata.disk.no,
+					metadata.disk.of,
+					artistid,
+					metadata.year,
+					metadata.genre[0]
+				]);
 			
 				// insert track.
-				sock.run('INSERT INTO track (id,title,path,track_no,album_id,duration,bitrate,sample_rate) VALUES(?,?,?,?,?,?,?,?)',
-				{
-					1: trackid,
-					2: metadata.title,
-					3: encodeURIComponent(path),
-					4: metadata.track.no,
-					5: albumid,
-					6: metadata.duration,
-					7: metadata.bitrate,
-					8: metadata.sample_rate
-				
-				},function(){
+				sock.run('INSERT INTO track (id,title,path,track_no,album_id,duration,bitrate,sample_rate) VALUES(?,?,?,?,?,?,?,?)',[
+					trackid,
+					metadata.title,
+					encodeURIComponent(path),
+					metadata.track.no,albumid,
+					metadata.duration,
+					metadata.bitrate,
+					metadata.sample_rate
+				],function(){
 				
 					// when we're done run the callback.
-					callback();
+					if ( callback ) callback();
 				
 				});
 				
