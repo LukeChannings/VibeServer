@@ -22,9 +22,8 @@ global.settings = new Settings(function(){
 		// create a scanner.
 		var scanner = new Scanner(function(){
 		
+			// initialise a scan.
 			this.scan();
-		
-			collection.postScan();
 		
 		});
 	

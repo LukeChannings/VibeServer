@@ -28,7 +28,7 @@ function Server(){
 		 */
 		socket.on('getArtists',function(callback){
 		
-			event.emit('queryCollection','SELECT name, id, album_count FROM artist WHERE name != "" ORDER BY name COLLATE NOCASE',function(err,res){
+			event.emit('queryCollection','SELECT name, id, albums FROM artist WHERE name != "" ORDER BY name COLLATE NOCASE',function(err,res){
 				
 				if ( err ) console.error(err);
 				
@@ -47,7 +47,7 @@ function Server(){
 		 */
 		socket.on('getAlbums',function(callback){
 		
-			event.emit('queryCollection','SELECT title, id, track_count FROM album WHERE title != "" ORDER BY title COLLATE NOCASE'),function(err,res){
+			event.emit('queryCollection','SELECT title, id, tracks FROM album WHERE title != "" ORDER BY title COLLATE NOCASE'),function(err,res){
 			
 				if ( err ) console.error(err);
 			
@@ -178,6 +178,16 @@ function Server(){
 				});
 				
 			}
+		});
+		
+		/**
+		 * scanningStatus
+		 * @description Returns the status of the Scanner.
+		 */
+		socket.on('scanningStatus',function(callback){
+		
+			event.emit('scanningStatus',callback);
+		
 		});
 		
 	});
