@@ -64,7 +64,7 @@ function Server(){
 		 */
 		socket.on('getTracks',function(callback){
 		
-			event.emit('queryCollection','SELECT title, id, duration, track_no FROM track WHERE title != ""',function(err,res){
+			event.emit('queryCollection','SELECT title, id, length, track_no FROM track WHERE title != ""',function(err,res){
 			
 				if ( err ) console.error(err);
 				
@@ -99,7 +99,7 @@ function Server(){
 		 */
 		socket.on('getArtistAlbums',function(artist_id,callback){
 		
-			event.emit('queryCollection','SELECT title, id, track_of, track_count FROM album WHERE artist_id = "' + artist_id + '"',function(err,res){
+			event.emit('queryCollection','SELECT name, id, tracks FROM album WHERE artist_id = "' + artist_id + '"',function(err,res){
 			
 				if ( err ) console.error(err);
 			
@@ -117,7 +117,7 @@ function Server(){
 		 */
 		socket.on('getAlbumTracks',function(album_id,callback){
 		
-			event.emit('queryCollection','SELECT title, id, track_no, duration, bitrate, sample_rate FROM track WHERE album_id = "' + album_id + '"',function(err,res){
+			event.emit('queryCollection','SELECT name, id, no, length, bitrate, samplerate FROM track WHERE album_id = "' + album_id + '"',function(err,res){
 			
 				if ( err ) console.error(err);
 			
@@ -135,7 +135,7 @@ function Server(){
 		 */
 		socket.on('getArtistTracks',function(artist_id,callback){
 		
-			event.emit('queryCollection','SELECT title,id FROM track WHERE artist_id = "' + artist_id + '"',function(err,res){
+			event.emit('queryCollection','SELECT name,id FROM track WHERE artist_id = "' + artist_id + '"',function(err,res){
 			
 				if ( err ) console.error(err);
 				
@@ -186,7 +186,11 @@ function Server(){
 		 */
 		socket.on('scanningStatus',function(callback){
 		
-			event.emit('scanningStatus',callback);
+			event.emit('scanningStatus',function(status){
+			
+				socket.emit(callback,status);
+			
+			});
 		
 		});
 		

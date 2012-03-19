@@ -102,8 +102,7 @@ function Collection(callback){
 					"artist_id" : id.artist,
 					"name" : data.metadata.album,
 					"year" : parseInt(data.metadata.date),
-					"genre" : data.metadata.genre,
-					"track_count" : index.of
+					"genre" : data.metadata.genre
 				},
 				"artist" : {
 					"id" : id.artist,

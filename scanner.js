@@ -38,7 +38,7 @@ function Scanner(callback){
 	function setState(state,no,of,path){
 		
 		// set the new state.
-		self.scanningState = state;
+		self.scanning.state = state;
 		
 		// if we're adding a track.
 		if ( state == "SCAN_ADD" && no && of && path )
@@ -243,7 +243,7 @@ function Scanner(callback){
 	event.on('scanningStatus',function(callback){
 	
 		// callback with the scanning object.
-		callback(self.scanning);
+		callback(JSON.stringify(self.scanning));
 	
 	});
 }
