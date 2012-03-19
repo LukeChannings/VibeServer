@@ -212,52 +212,86 @@ function Collection(callback){
 	 */
 	this.postScan = function(callback){
 	
-		// get a list of all artist ids.
+		// get a list of albums.
 		event.emit('queryCollection','SELECT id FROM album',function(err,data){
 		
-			async.forEach(data,
-			function(album,next){
+			// loop through the albums.
+			async.forEachSeries(data,function(album,next){
 			
+				// find the number of tracks in the current album.
 				event.emit('queryCollection','SELECT count(*) FROM track WHERE album_id = "' + album.id + '"',function(err,data){
 				
-					var tracks = parseInt(data["count(*)"]);
+					// parse the result into an integer.
+					var tracks = parseInt(data[0]["count(*)"]);
 				
-					if ( tracks == 0 )
+					// if there are no tracks for the album.
+					if ( tracks === 0 )
 					{
-						event.emit('queryCollection','DELETE FROM album WHERE id = "' + album.id + '"');
+						// delete the album.
+						event.emit('queryCollection','DELETE FROM album WHERE id = "' + album.id + '"',function(err){
+						
+							if ( err ) console.error(err);
+						
+							process.nextTick(next);
+						
+						});
+						
 					}
-					else
-					{
-						event.emit('queryCollection','UPDATE album SET tracks = ' + tracks + ' WHERE id = "' + album.id + '"',next);
+					else {
+					
+						// update the collection attribute.
+						event.emit('queryCollection','UPDATE album SET tracks = ' + tracks + ' WHERE id = "' + album.id + '"',function(err){
+						
+							if ( err ) console.error(err);
+						
+							process.nextTick(next);
+						
+						});
+						
 					}
+				
 				});
 			
-			},
-			function(){
+			},function(){
 			
+				// get a list of artists.
 				event.emit('queryCollection','SELECT id FROM artist',function(err,data){
 				
-					async.forEach(data,function(artist,next){
+					// loop through the artists.
+					async.forEachSeries(data,function(artist,next){
 					
+						// find the number of albums belonging to this artist.
 						event.emit('queryCollection','SELECT count(*) FROM album WHERE artist_id = "' + artist.id + '"',function(err,data){
 						
-							var albums = parseInt(data["count(id)"]);
+							var albums = parseInt(data[0]["count(*)"]);
 						
 							if ( albums == 0 )
 							{
-								event.emit('queryCollection','DELETE FROM artist WHERE id = "' + artist.id + '"');
+								event.emit('queryCollection','DELETE FROM artist WHERE id = "' + artist.id + '"',function(err){
+								
+									if ( err ) console.error(err);
+									
+									process.nextTick(next);
+									
+								});
 							}
 							else
 							{
-								event.emit('queryCollection','UPDATE artist SET albums = ' + albums + ' WHERE id = "' + artist.id + '"',next);
+								event.emit('queryCollection','UPDATE artist SET albums = ' + albums + ' WHERE id = "' + artist.id + '"',function(err){
+								
+									if ( err ) console.error(err);
+								
+									process.nextTick(next);
+								
+								});
 							}
 						
 						});
 					
 					},function(){
-						
+					
 						if ( callback ) callback();
-						
+					
 					});
 				
 				});
@@ -265,7 +299,7 @@ function Collection(callback){
 			});
 		
 		});
-		
+				
 	}
 
 	// event listeners.
