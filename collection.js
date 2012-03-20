@@ -2,7 +2,6 @@ var sqlite = require('sqlite3');
 var fs = require('fs');
 var crypto = require('crypto');
 var probe = require('node-ffprobe');
-var async = require('async');
 
 /**
  * Collection
