@@ -194,6 +194,12 @@ function Server(){
 		
 		});
 		
+		event.on('scannerStatusUpdate',function(status){
+		
+			socket.emit('scannerStatusUpdate',status);
+		
+		})
+		
 	});
 	
 	/**
@@ -252,7 +258,7 @@ function Server(){
 					res.setHeader('Content-Type',MIME);
 					
 					// get the file statistics.
-					var stat = fs.stat(path,function(err,stats){
+					fs.stat(path,function(err,stats){
 					
 						if ( !stats )
 						{
@@ -268,8 +274,20 @@ function Server(){
 						// if there is no range request.
 						if ( ! req.headers.range )
 						{
-							// send the full file.
-							res.end(fs.readFile(path));
+						
+							var stream = fs.createReadStream(path);
+							
+							stream.on('data',function(data){
+							
+								res.write(data);
+							
+							});
+							
+							stream.on('end',function(){
+							
+								res.end();
+							
+							});
 						
 						}
 						

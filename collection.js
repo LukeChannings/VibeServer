@@ -72,44 +72,76 @@ function Collection(callback){
 	
 		probe(path,function(data){
 		
-			// calculate hashes.
-			var id = {
-				"artist" : crypto.createHash('md5').update(data.metadata.artist).digest("hex"),
-				"album" : crypto.createHash('md5').update(data.metadata.artist + data.metadata.album).digest("hex"),
-				"track" : crypto.createHash('md5').update(data.metadata.title + data.metadata.album).digest("hex")
-			}
+			// if there is no metadata for the file..
+			if ( ! data.metadata )
+			{
 			
-			// gather track index data.
-			var index = {
-				no : ( typeof data.metadata.track == "string" ) ? parseInt(data.metadata.track.split('/')[0]) : data.metadata.track,
-				of : ( typeof data.metadata.track == "string" ) ? parseInt(data.metadata.track.split('/')[1]) : 0
+				// callback without metadata.
+				callback(null);
 			}
-		
-			callback({
-				"track" : {
-					"id" : id.track,
-					"album_id" : id.album,
-					"artist_id" : id.artist,
-					"name" : data.metadata.title,
-					"path" : path,
-					"index" : index.no,
-					"length" : data.format.duration,
-					"bitrate" : data.format.bit_rate,
-					"samplerate" : data.streams[0].sample_rate
-				},
-				"album" : {
-					"id" : id.album,
-					"artist_id" : id.artist,
-					"name" : data.metadata.album,
-					"year" : parseInt(data.metadata.date),
-					"genre" : data.metadata.genre
-				},
-				"artist" : {
-					"id" : id.artist,
-					"name" : data.metadata.artist
+			else
+			{
+				
+				try
+				{
+					// calculate hashes.
+					var id = {
+						"artist" : crypto.createHash('md5').update(data.metadata.artist).digest("hex"),
+						"album" : crypto.createHash('md5').update(data.metadata.artist + data.metadata.album).digest("hex"),
+						"track" : crypto.createHash('md5').update(data.metadata.title + data.metadata.album).digest("hex")
+					}
+					
+					// gather track index data.
+					var index = {
+						"no" : ( typeof data.metadata.track == "string" ) ? parseInt(data.metadata.track.split('/')[0]) : data.metadata.track,
+						"of" : ( typeof data.metadata.track == "string" ) ? parseInt(data.metadata.track.split('/')[1]) : 0
+					}
+				
+					// define the metadata object.
+					var metadata = {
+						"track" : {
+							"id" : id.track,
+							"album_id" : id.album,
+							"artist_id" : id.artist,
+							"name" : data.metadata.title,
+							"path" : path,
+							"index" : index.no,
+							"length" : data.format.duration,
+							"bitrate" : data.format.bit_rate,
+							"samplerate" : data.streams[0].sample_rate
+						},
+						"album" : {
+							"id" : id.album,
+							"artist_id" : id.artist,
+							"name" : data.metadata.album,
+							"year" : parseInt(data.metadata.date),
+							"genre" : data.metadata.genre
+						},
+						"artist" : {
+							"id" : id.artist,
+							"name" : data.metadata.artist
+						}
+					}
+				
 				}
-			});
-		
+				catch(ex)
+				{
+					// if there was some missing metadata...
+					if ( ex.name == "ReferenceError" )
+					{
+						// make the entire metadata object null.
+						metadata = null;
+					}
+					else
+					{
+						console.error(ex);
+					}
+				}
+				finally
+				{
+					callback(metadata);
+				}
+			}
 		});
 				
 		return 0;
@@ -203,103 +235,6 @@ function Collection(callback){
 		event.emit('queryCollection','DELETE FROM track WHERE path = "' + path + '"',callback);
 	
 	}
-	
-	/**
-	 * postScan
-	 * @description updates collection metadata after adding tracks. Sets number of children for artists and albums, and gets albumart.
-	 * @param callback - (function) Called once postAdd has finished.
-	 */
-	this.postScan = function(callback){
-	
-		// get a list of albums.
-		event.emit('queryCollection','SELECT id FROM album',function(err,data){
-		
-			// loop through the albums.
-			async.forEachSeries(data,function(album,next){
-			
-				// find the number of tracks in the current album.
-				event.emit('queryCollection','SELECT count(*) FROM track WHERE album_id = "' + album.id + '"',function(err,data){
-				
-					// parse the result into an integer.
-					var tracks = parseInt(data[0]["count(*)"]);
-				
-					// if there are no tracks for the album.
-					if ( tracks === 0 )
-					{
-						// delete the album.
-						event.emit('queryCollection','DELETE FROM album WHERE id = "' + album.id + '"',function(err){
-						
-							if ( err ) console.error(err);
-						
-							process.nextTick(next);
-						
-						});
-						
-					}
-					else {
-					
-						// update the collection attribute.
-						event.emit('queryCollection','UPDATE album SET tracks = ' + tracks + ' WHERE id = "' + album.id + '"',function(err){
-						
-							if ( err ) console.error(err);
-						
-							process.nextTick(next);
-						
-						});
-						
-					}
-				
-				});
-			
-			},function(){
-			
-				// get a list of artists.
-				event.emit('queryCollection','SELECT id FROM artist',function(err,data){
-				
-					// loop through the artists.
-					async.forEachSeries(data,function(artist,next){
-					
-						// find the number of albums belonging to this artist.
-						event.emit('queryCollection','SELECT count(*) FROM album WHERE artist_id = "' + artist.id + '"',function(err,data){
-						
-							var albums = parseInt(data[0]["count(*)"]);
-						
-							if ( albums == 0 )
-							{
-								event.emit('queryCollection','DELETE FROM artist WHERE id = "' + artist.id + '"',function(err){
-								
-									if ( err ) console.error(err);
-									
-									process.nextTick(next);
-									
-								});
-							}
-							else
-							{
-								event.emit('queryCollection','UPDATE artist SET albums = ' + albums + ' WHERE id = "' + artist.id + '"',function(err){
-								
-									if ( err ) console.error(err);
-								
-									process.nextTick(next);
-								
-								});
-							}
-						
-						});
-					
-					},function(){
-					
-						if ( callback ) callback();
-					
-					});
-				
-				});
-			
-			});
-		
-		});
-				
-	}
 
 	// event listeners.
 	bindEventHandler('addTrackToCollection',self.addTrackToCollection);
@@ -309,7 +244,6 @@ function Collection(callback){
 		sock.all(sql,callback);
 		
 	});
-	bindEventHandler('postScan',self.postScan);
 
 }
 

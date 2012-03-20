@@ -127,7 +127,10 @@ function Scanner(callback){
 		});
 	
 		// return an array with the two arrays.
-		return [removed, added];
+		return {
+			"removed" : removed,
+			"added" : added
+		};
 	
 	}
 
@@ -140,6 +143,9 @@ function Scanner(callback){
 	
 		// function to match MP3 files.
 		function matchMP3(path){ return path.match(/\.mp3$/) }
+	
+		// set state.
+		setState("SCAN_WALK");
 	
 		// walk the collection.
 		match.find(settings.get('collection_path'),{ fileFilters : [matchMP3] },function(err, paths){
@@ -166,13 +172,13 @@ function Scanner(callback){
 					var diff = collectionDifference(flattenArray(previous_collection),paths);
 				
 					// update scanning stats.
-					self.scanning.items.del.of = diff[0].length;
-					self.scanning.items.add.of = diff[1].length;
+					self.scanning.items.del.of = diff.removed.length;
+					self.scanning.items.add.of = diff.added.length;
 					
 					setState("SCAN_ADD");
 					
 					// add tracks to the collection.
-					async.forEachSeries(diff[1],function(song,next){
+					async.forEachSeries(diff.added,function(song,next){
 					
 						event.emit('addTrackToCollection',song,function(){
 						
@@ -198,7 +204,7 @@ function Scanner(callback){
 							setState("SCAN_DEL");
 						}
 						
-						async.forEachSeries(diff[0],function(song,next){
+						async.forEachSeries(diff.removed,function(song,next){
 						
 							event.emit('removeTrackFromCollection',song,function(){
 							
@@ -217,7 +223,7 @@ function Scanner(callback){
 						
 							setState("POST_SCAN")
 						
-							event.emit('postScan',function(){
+							self.postScan(function(){
 							
 								setState("NO_SCAN");
 							
@@ -233,6 +239,103 @@ function Scanner(callback){
 		
 		});
 		
+	}
+	
+	/**
+	 * postScan
+	 * @description updates collection metadata after adding tracks. Sets number of children for artists and albums, and gets albumart.
+	 * @param callback - (function) Called once postAdd has finished.
+	 */
+	this.postScan = function(callback){
+	
+		// get a list of albums.
+		event.emit('queryCollection','SELECT id FROM album',function(err,data){
+		
+			// loop through the albums.
+			async.forEachSeries(data,function(album,next){
+			
+				// find the number of tracks in the current album.
+				event.emit('queryCollection','SELECT count(*) FROM track WHERE album_id = "' + album.id + '"',function(err,data){
+				
+					// parse the result into an integer.
+					var tracks = parseInt(data[0]["count(*)"]);
+				
+					// if there are no tracks for the album.
+					if ( tracks === 0 )
+					{
+						// delete the album.
+						event.emit('queryCollection','DELETE FROM album WHERE id = "' + album.id + '"',function(err){
+						
+							if ( err ) console.error(err);
+						
+							process.nextTick(next);
+						
+						});
+						
+					}
+					else {
+					
+						// update the collection attribute.
+						event.emit('queryCollection','UPDATE album SET tracks = ' + tracks + ' WHERE id = "' + album.id + '"',function(err){
+						
+							if ( err ) console.error(err);
+						
+							process.nextTick(next);
+						
+						});
+						
+					}
+				
+				});
+			
+			},function(){
+			
+				// get a list of artists.
+				event.emit('queryCollection','SELECT id FROM artist',function(err,data){
+				
+					// loop through the artists.
+					async.forEachSeries(data,function(artist,next){
+					
+						// find the number of albums belonging to this artist.
+						event.emit('queryCollection','SELECT count(*) FROM album WHERE artist_id = "' + artist.id + '"',function(err,data){
+						
+							var albums = parseInt(data[0]["count(*)"]);
+						
+							if ( albums == 0 )
+							{
+								event.emit('queryCollection','DELETE FROM artist WHERE id = "' + artist.id + '"',function(err){
+								
+									if ( err ) console.error(err);
+									
+									process.nextTick(next);
+									
+								});
+							}
+							else
+							{
+								event.emit('queryCollection','UPDATE artist SET albums = ' + albums + ' WHERE id = "' + artist.id + '"',function(err){
+								
+									if ( err ) console.error(err);
+								
+									process.nextTick(next);
+								
+								});
+							}
+						
+						});
+					
+					},function(){
+					
+						if ( callback ) callback();
+					
+					});
+				
+				});
+			
+			});
+		
+		});
+				
 	}
 	
 	// run the callback within the scanner scope after init.
