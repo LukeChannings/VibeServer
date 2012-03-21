@@ -15,19 +15,20 @@ function Settings(callback){
 		// read the settings file.
 		fs.readFile("settings.json",function(err,data){
 		
-			// throw an error if the settings file does not exist.
-			if ( err ) console.error("Settings file does not exist.");
-		
-			else {
-				
+			try {
 				// parse the JSON file and put the resulting object into settings.
 				settings = JSON.parse(data);
 				
 				// run the callback when the settings file is loaded.
 				callback();
-				
 			}
-		
+			catch(ex)
+			{
+				// throw an error if the settings file does not exist or is broken.
+				if ( err ) console.error("Settings file does not exist.");
+				else console.error("Settings file is malformed.");
+			}
+			
 		});
 	
 	})();
@@ -36,7 +37,7 @@ function Settings(callback){
 	 * writeSettings
 	 * @description write the settings object back into settings.json.
 	 */
-	function writeSettings(){
+	function writeSettings(key){
 	
 		// convert the object into a string.
 		var data = JSON.stringify(settings,null,"\t");
@@ -48,7 +49,7 @@ function Settings(callback){
 			if ( err ) console.error(err);
 			
 			// log that the settings have been updated.
-			else console.log("Settings updated.");
+			else console.log("Settings: Commited " + key);
 		
 		});
 	
@@ -66,7 +67,7 @@ function Settings(callback){
 		settings[key] = value;
 	
 		// commit the setting.
-		writeSettings();
+		writeSettings(key);
 	
 	}
 	

@@ -47,11 +47,11 @@ function Server(){
 		 */
 		socket.on('getAlbums',function(callback){
 		
-			event.emit('queryCollection','SELECT title, id, tracks FROM album WHERE title != "" ORDER BY title COLLATE NOCASE'),function(err,res){
+			event.emit('queryCollection','SELECT name, id, tracks, art_small, art_medium, art_large FROM album WHERE name != "" ORDER BY name COLLATE NOCASE'),function(err,res){
 			
 				if ( err ) console.error(err);
 			
-				callback(res);
+				socket.emit(callback,res);
 			
 			};
 		
@@ -99,7 +99,7 @@ function Server(){
 		 */
 		socket.on('getArtistAlbums',function(artist_id,callback){
 		
-			event.emit('queryCollection','SELECT name, id, tracks FROM album WHERE artist_id = "' + artist_id + '"',function(err,res){
+			event.emit('queryCollection','SELECT name, id, tracks, art_small, art_medium, art_large FROM album WHERE artist_id = "' + artist_id + '"',function(err,res){
 			
 				if ( err ) console.error(err);
 			

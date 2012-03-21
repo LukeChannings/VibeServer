@@ -43,7 +43,7 @@ function Collection(callback){
 			sock.run('CREATE TABLE track(id VARCHAR(255),album_id VARCHAR(255),artist_id VARCHAR(255),name VARCHAR(255),path VARCHAR(255),no INT(10),length INT(10),bitrate INT(10),samplerate INT(10),PRIMARY KEY(id),FOREIGN KEY(album_id) REFERENCES album(id),FOREIGN KEY(artist_id) REFERENCES artist(id))');
 			
 			// define album.
-			sock.run('CREATE TABLE album(id VARCHAR(255),artist_id VARCHAR(255),name VARCHAR(255),year INT(5),genre VARCHAR(255),art_resource VARCHAR(255),tracks INT(5),PRIMARY KEY(id),FOREIGN KEY(artist_id) REFERENCES artist(id))');
+			sock.run('CREATE TABLE album(id VARCHAR(255),artist_id VARCHAR(255),name VARCHAR(255),year INT(5),genre VARCHAR(255),art_small VARCHAR(255),art_medium VARCHAR(255),art_large VARCHAR(255),tracks INT(5),PRIMARY KEY(id),FOREIGN KEY(artist_id) REFERENCES artist(id))');
 			
 			// define artist.
 			sock.run('CREATE TABLE artist(id VARCHAR(255),name VARCHAR(255),albums INT(10),art_resource VARCHAR(255),PRIMARY KEY(id))',function(){
@@ -242,6 +242,15 @@ function Collection(callback){
 		
 		sock.all(sql,callback);
 		
+	});
+	bindEventHandler('updateCollection',function(sql,param){
+	
+		sock.all(sql,param,function(err){
+		
+			if ( err ) console.error(err);
+		
+		});
+	
 	});
 
 }

@@ -135,6 +135,215 @@ function Scanner(callback){
 	}
 
 	/**
+	 * LastFM API for finding album art.
+	 */
+	var getLastFMAlbumArt = function(artist,album,callback){
+	
+		// MusicMe LastFM API key.
+		var api_key = "6d97a6df16c5510dcd504956a0c6edb0";
+		
+		// LastFM API path.
+		var url = "http://ws.audioscrobbler.com/2.0/?format=json";
+		
+		if ( artist && album )
+		{
+			artist = encodeURIComponent(artist);
+			
+			album = encodeURIComponent(album);
+		}
+		
+		else callback();
+		
+		// get request.
+		var request = require('request');
+		
+		// make a request for the given artist and album.
+		request(url + "&api_key=" + api_key + "&method=album.getinfo&artist=" + artist + "&album=" + album,function(err,res,body){
+		
+			if ( err ) throw err;
+			
+			else
+			{
+				var body = JSON.parse(body);
+				
+				try {
+					var result = {
+						"small" : body.album.image[0]["#text"],
+						"medium" : body.album.image[1]["#text"],
+						"large" : body.album.image[2]["#text"],
+						"extralarge" : body.album.image[3]["#text"],
+						"mega" : body.album.image[4]["#text"]
+					}
+				}
+				catch (ex)
+				{
+					result = null;
+				}
+				finally
+				{
+					callback(result);
+				}
+				
+			}
+		
+		});
+	
+		request = null;
+	
+	}
+
+	function countArtistAlbums(callback){
+	
+		// get a list of albums.
+		event.emit('queryCollection','SELECT id FROM album',function(err,data){
+		
+			// loop through the albums.
+			async.forEachSeries(data,function(album,next){
+			
+				// find the number of tracks in the current album.
+				event.emit('queryCollection','SELECT count(*) AS count FROM track WHERE album_id = "' + album.id + '"',function(err,data){
+				
+					// parse the result into an integer.
+					var tracks = parseInt(data[0]["count"]);
+				
+					// if there are no tracks for the album.
+					if ( tracks === 0 )
+					{
+						// delete the album.
+						event.emit('queryCollection','DELETE FROM album WHERE id = "' + album.id + '"',function(err){
+						
+							if ( err ) console.error(err);
+						
+							process.nextTick(next);
+						
+						});
+						
+					}
+					else {
+					
+						// update the collection attribute.
+						event.emit('queryCollection','UPDATE album SET tracks = ' + tracks + ' WHERE id = "' + album.id + '"',function(err){
+						
+							if ( err ) console.error(err);
+						
+							process.nextTick(next);
+						
+						});
+						
+					}
+				
+				});
+			
+			},callback);
+		
+		});
+	
+	}
+
+	function countAlbumTracks(callback){
+	
+		// get a list of artists.
+		event.emit('queryCollection','SELECT id FROM artist',function(err,data){
+		
+			// loop through the artists.
+			async.forEachSeries(data,function(artist,next){
+			
+				// find the number of albums belonging to this artist.
+				event.emit('queryCollection','SELECT count(*) AS count FROM album WHERE artist_id = "' + artist.id + '"',function(err,data){
+				
+					var albums = parseInt(data[0]["count"]);
+				
+					if ( albums == 0 )
+					{
+						event.emit('queryCollection','DELETE FROM artist WHERE id = "' + artist.id + '"',function(err){
+						
+							if ( err ) console.error(err);
+							
+							process.nextTick(next);
+							
+						});
+					}
+					else
+					{
+						event.emit('queryCollection','UPDATE artist SET albums = ' + albums + ' WHERE id = "' + artist.id + '"',function(err){
+						
+							if ( err ) console.error(err);
+						
+							process.nextTick(next);
+						
+						});
+					}
+				
+				});
+			
+			},function(){
+			
+				if ( callback ) callback();
+			
+			});
+			
+		});
+	
+	}
+
+	function fetchAlbumArt(callback){
+	
+		// get a list of albums.
+		event.emit('queryCollection','SELECT album.id, artist.name AS artist, album.name AS album FROM artist INNER JOIN album ON album.artist_id = artist.id',function(err,res){
+		
+			if ( err )
+			{
+				throw err;
+			}
+			else
+			{
+			
+				// loop through the albums in order.
+				async.forEachSeries(res,function(item,next){
+				
+					if ( ! item )
+					{
+						// skip to next album.
+						process.nextTick(next);
+					}
+					else
+					{
+						// get the album art urls.
+						getLastFMAlbumArt(item.artist,item.album,function(art){
+						
+							// if there is art for this album then update the database with it.
+							if ( art ) event.emit('updateCollection','UPDATE album SET art_small = ?, art_medium = ?, art_large = ? WHERE id = ?',[
+								art.small,
+								art.medium,
+								art.large,
+								item.id
+							]);
+						
+							// do the same for the next album.
+							process.nextTick(next);
+						
+						});
+					}
+				
+				},function(){
+				
+					// when we're done getting the album art, check for a callback.
+					if ( callback )
+					{
+						
+						// run it there is one.
+						callback();
+						
+					}
+				
+				});
+				
+			}
+		
+		});
+	}
+
+	/**
 	 * scan
 	 * @description Scans the collection path.
 	 * @param callback - executed when scanning has completed. (function)
@@ -221,13 +430,30 @@ function Scanner(callback){
 							// set deleting stats to zero.
 							self.scanning.items.del.of = self.scanning.items.del.no = 0;
 						
-							setState("POST_SCAN")
-						
-							self.postScan(function(){
+							// get the current epoch.
+							var epoch = new Date().getTime();
 							
+							// get the previous epoch.
+							var last_epoch = settings.get("postscan_epoch");
+							
+							// check if it's been more than a week since the last post scan.
+							if ( ! last_epoch || (last_epoch + (1000 * 60 * 24 * 7)) < epoch )
+							{
+								// if it's been more than a week then run the scan.
+								self.postScan(function(){
+								
+									// finished post scan.
+									setState("NO_SCAN");
+								
+								});
+								
+								settings.set("postscan_epoch",epoch);
+								
+							}
+							else
+							{
 								setState("NO_SCAN");
-							
-							});
+							}
 						
 						});
 					
@@ -248,107 +474,32 @@ function Scanner(callback){
 	 */
 	this.postScan = function(callback){
 	
-		// get a list of albums.
-		event.emit('queryCollection','SELECT id FROM album',function(err,data){
+		// set new state.
+		setState("POST_SCAN");
+	
+		countAlbumTracks(function(){
 		
-			// loop through the albums.
-			async.forEachSeries(data,function(album,next){
+			countArtistAlbums(function(){
 			
-				// find the number of tracks in the current album.
-				event.emit('queryCollection','SELECT count(*) FROM track WHERE album_id = "' + album.id + '"',function(err,data){
+				// set new state.
+				setState("FETCH_ART");
 				
-					// parse the result into an integer.
-					var tracks = parseInt(data[0]["count(*)"]);
+				fetchAlbumArt(function(){
 				
-					// if there are no tracks for the album.
-					if ( tracks === 0 )
-					{
-						// delete the album.
-						event.emit('queryCollection','DELETE FROM album WHERE id = "' + album.id + '"',function(err){
-						
-							if ( err ) console.error(err);
-						
-							process.nextTick(next);
-						
-						});
-						
-					}
-					else {
-					
-						// update the collection attribute.
-						event.emit('queryCollection','UPDATE album SET tracks = ' + tracks + ' WHERE id = "' + album.id + '"',function(err){
-						
-							if ( err ) console.error(err);
-						
-							process.nextTick(next);
-						
-						});
-						
-					}
-				
-				});
-			
-			},function(){
-			
-				// get a list of artists.
-				event.emit('queryCollection','SELECT id FROM artist',function(err,data){
-				
-					// loop through the artists.
-					async.forEachSeries(data,function(artist,next){
-					
-						// find the number of albums belonging to this artist.
-						event.emit('queryCollection','SELECT count(*) FROM album WHERE artist_id = "' + artist.id + '"',function(err,data){
-						
-							var albums = parseInt(data[0]["count(*)"]);
-						
-							if ( albums == 0 )
-							{
-								event.emit('queryCollection','DELETE FROM artist WHERE id = "' + artist.id + '"',function(err){
-								
-									if ( err ) console.error(err);
-									
-									process.nextTick(next);
-									
-								});
-							}
-							else
-							{
-								event.emit('queryCollection','UPDATE artist SET albums = ' + albums + ' WHERE id = "' + artist.id + '"',function(err){
-								
-									if ( err ) console.error(err);
-								
-									process.nextTick(next);
-								
-								});
-							}
-						
-						});
-					
-					},function(){
-					
-						if ( callback ) callback();
-					
-					});
+					// set final state.
+					setState("NO_SCAN");
 				
 				});
 			
 			});
 		
 		});
-				
+		
 	}
 	
 	// run the callback within the scanner scope after init.
 	if ( callback ) callback.call(this);
 	
-	
-	// listen for scanningStatus event.
-	event.on('scanningStatus',function(callback){
-	
-		// callback with the scanning object.
-		callback(JSON.stringify(self.scanning));
-	
-	});
 }
 
 // Export the scanner class.
