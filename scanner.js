@@ -160,7 +160,13 @@ function Scanner(callback){
 		// make a request for the given artist and album.
 		request(url + "&api_key=" + api_key + "&method=album.getinfo&artist=" + artist + "&album=" + album,function(err,res,body){
 		
-			if ( err ) throw err;
+			if ( err )
+			{
+				console.error(err);
+				
+				callback();
+				
+			}
 			
 			else
 			{

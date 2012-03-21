@@ -34,8 +34,9 @@ function Server(){
 				
 				else{
 				
-					callback(res);
-				
+					if ( typeof callback == "function" ) callback(res);
+					
+					else console.error("Callback is not a function. Huh?");
 				}
 			});
 		});
@@ -51,7 +52,9 @@ function Server(){
 			
 				if ( err ) console.error(err);
 			
-				socket.emit(callback,res);
+				if ( typeof callback == "function" ) callback(res);
+				
+				else console.error("Callback is not a function. Huh?");
 			
 			};
 		
@@ -68,7 +71,9 @@ function Server(){
 			
 				if ( err ) console.error(err);
 				
-				callback(res);
+				if ( typeof callback == "function" ) callback(res);
+				
+				else console.error("Callback is not a function. Huh?");
 			
 			});
 		
@@ -85,7 +90,9 @@ function Server(){
 			
 				if ( err ) console.error(err);
 			
-				callback(res);
+				if ( typeof callback == "function" ) callback(res);
+				
+				else console.error("Callback is not a function. Huh?");
 			
 			};
 		
@@ -103,7 +110,9 @@ function Server(){
 			
 				if ( err ) console.error(err);
 			
-				callback(res);
+				if ( typeof callback == "function" ) callback(res);
+				
+				else console.error("Callback is not a function. Huh?");
 			
 			});
 		
@@ -121,7 +130,9 @@ function Server(){
 			
 				if ( err ) console.error(err);
 			
-				callback(res);
+				if ( typeof callback == "function" ) callback(res);
+				
+				else console.error("Callback is not a function. Huh?");
 			
 			});
 		
@@ -139,7 +150,9 @@ function Server(){
 			
 				if ( err ) console.error(err);
 				
-				callback(res);
+				if ( typeof callback == "function" ) callback(res);
+				
+				else console.error("Callback is not a function. Huh?");
 			
 			});
 		
@@ -163,7 +176,9 @@ function Server(){
 					if ( err ){
 					
 						// callback with the error.
-						if ( callback ) callback(err);
+						if ( typeof callback == "function" ) callback(err);
+						
+						else console.error("Callback is not a function. Huh?");
 						
 						// throw the error.
 						console.error(err);
@@ -171,7 +186,9 @@ function Server(){
 					else {
 					
 						// callback when we're done.
-						if ( callback ) callback();
+						if ( typeof callback == "function" ) callback();
+						
+						else console.error("Callback is not a function. Huh?");
 					
 					}
 				
@@ -179,26 +196,6 @@ function Server(){
 				
 			}
 		});
-		
-		/**
-		 * scanningStatus
-		 * @description Returns the status of the Scanner.
-		 */
-		socket.on('scanningStatus',function(callback){
-		
-			event.emit('scanningStatus',function(status){
-			
-				socket.emit(callback,status);
-			
-			});
-		
-		});
-		
-		event.on('scannerStatusUpdate',function(status){
-		
-			socket.emit('scannerStatusUpdate',status);
-		
-		})
 		
 	});
 	
