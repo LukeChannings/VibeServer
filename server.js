@@ -30,17 +30,83 @@ function Server(){
 		
 			event.emit('queryCollection','SELECT name, id, albums FROM artist WHERE name != "" ORDER BY name COLLATE NOCASE',function(err,res){
 				
-				if ( err ) console.error(err);
-				
-				else{
-				
-					if ( typeof callback == "function" ) callback(res);
-					
-					else console.error("Callback is not a function. Huh?");
+				if ( typeof callback == "function" )
+				{
+					if ( err ) callback(err);
+					else
+					{
+						callback(null,res);
+					}
 				}
+				else
+				{
+					console.error("No callback specified for request.");
+				}
+			
 			});
 		});
-	
+
+		/**
+		 * getArtistNameFromId
+		 * @description get the name of the artist from an artist id.
+		 * @param id (string) - artist id.
+		 * @param callback (function) - function that will be sent the result.
+		 */
+		socket.on('getArtistNameFromId',function(id,callback){
+		
+			event.emit('queryCollection','SELECT name FROM artist WHERE id = "' + id + '"',function(err,res){
+			
+				if ( typeof callback == "function" )
+				{
+					if ( err ) callback(err);
+					else
+					{
+						callback(null,res[0].name);
+					}
+				}
+				else
+				{
+					console.error("No callback specified for request.");
+				}
+			
+			});
+		
+		});
+
+		/**
+		 * getArtistsInGenre
+		 * @description get a the metadata for all artists in a given genre.
+		 * @param name (string) - genre name.
+		 * @param callback (function) - function that will be sent the result.
+		 */
+		socket.on('getArtistsInGenre',function(name,callback){
+		
+			var artists = [];
+			
+			var async = require('async');
+		
+			event.emit('queryCollection','SELECT DISTINCT artist_id FROM album WHERE genre = "' + name + '"',function(err,res){
+			
+				async.forEachSeries(res,function(id,next){
+				
+					event.emit('queryCollection','SELECT name, id, albums FROM artist WHERE id = "' + id.artist_id + '"',function(err,artist){
+					
+						artists.push(artist[0]);
+						
+						next();
+					
+					});
+				
+				},function(){
+				
+					callback(err,artists);
+				
+				});
+			
+			});
+		
+		});
+
 		/**
 		 * getAlbums
 		 * @description Lists all albums in the collection.
@@ -48,15 +114,76 @@ function Server(){
 		 */
 		socket.on('getAlbums',function(callback){
 		
-			event.emit('queryCollection','SELECT name, id, tracks, art_small, art_medium, art_large FROM album WHERE name != "" ORDER BY name COLLATE NOCASE'),function(err,res){
-			
-				if ( err ) console.error(err);
-			
-				if ( typeof callback == "function" ) callback(res);
+			event.emit('queryCollection','SELECT name, id, tracks, art_small, art_medium, art_large FROM album WHERE name != "" ORDER BY name COLLATE NOCASE',function(err,res){
 				
-				else console.error("Callback is not a function. Huh?");
+				if ( typeof callback == "function" )
+				{
+					if ( err ) callback(err);
+					else
+					{
+						callback(null,res);
+					}
+				}
+				else
+				{
+					console.error("No callback specified for request.");
+				}
 			
-			};
+			});
+		
+		});
+
+		/**
+		 * getAlbum
+		 * @description returns the album metadata for the given album_id.
+		 * @param id (string) - the album_id.
+		 * @param callback (function) - the function that takes the result.
+		 */
+		socket.on('getAlbum',function(id,callback){
+		
+			event.emit('queryCollection','SELECT * FROM album WHERE id = "' + id + '"',function(err,res){
+			
+				if ( typeof callback == "function" )
+				{
+					if ( err ) callback(err);
+					else
+					{
+						callback(null,res);
+					}
+				}
+				else
+				{
+					console.error("No callback specified for request.");
+				}
+			
+			});
+		
+		});
+		
+		/**
+		 * getAlbumsByArtist
+		 * @description Lists the albums belonging to a given artist.
+		 * @param artist_id - the id of the artist to list albums for.
+		 * @param callback - function to be sent the result.
+		 */
+		socket.on('getAlbumsByArtist',function(artist_id,callback){
+		
+			event.emit('queryCollection','SELECT name, id, tracks, art_small, art_medium, art_large FROM album WHERE artist_id = "' + artist_id + '"',function(err,res){
+			
+				if ( typeof callback == "function" )
+				{
+					if ( err ) callback(err);
+					else
+					{
+						callback(null,res);
+					}
+				}
+				else
+				{
+					console.error("No callback specified for request.");
+				}
+			
+			});
 		
 		});
 		
@@ -67,13 +194,74 @@ function Server(){
 		 */
 		socket.on('getTracks',function(callback){
 		
-			event.emit('queryCollection','SELECT title, id, length, track_no FROM track WHERE title != ""',function(err,res){
+			event.emit('queryCollection','SELECT name, id, length, no FROM track WHERE name != ""',function(err,res){
 			
-				if ( err ) console.error(err);
-				
-				if ( typeof callback == "function" ) callback(res);
-				
-				else console.error("Callback is not a function. Huh?");
+				if ( typeof callback == "function" )
+				{
+					if ( err ) callback(err);
+					else
+					{
+						callback(null,res);
+					}
+				}
+				else
+				{
+					console.error("No callback specified for request.");
+				}
+			
+			});
+		
+		});
+		
+		/**
+		 * getTracksInAlbum
+		 * @description Lists the tracks belonging to a given album.
+		 * @param album_id - the id of the album to list tracks for.
+		 * @param callback - function to be sent the result.
+		 */
+		socket.on('getTracksInAlbum',function(album_id,callback){
+		
+			event.emit('queryCollection','SELECT name, id, no, length, bitrate, samplerate FROM track WHERE album_id = "' + album_id + '"',function(err,res){
+			
+				if ( typeof callback == "function" )
+				{
+					if ( err ) callback(err);
+					else
+					{
+						callback(null,res);
+					}
+				}
+				else
+				{
+					console.error("No callback specified for request.");
+				}
+			
+			});
+		
+		});
+		
+		/**
+		 * getTracksByArtist
+		 * @description Lists all tracks belonging to a given artist.
+		 * @param artist_id - the id of the artist to list albums for.
+		 * @param callback - function to be sent the result.
+		 */
+		socket.on('getTracksByArtist',function(artist_id,callback){
+		
+			event.emit('queryCollection','SELECT name,id FROM track WHERE artist_id = "' + artist_id + '"',function(err,res){
+			
+				if ( typeof callback == "function" )
+				{
+					if ( err ) callback(err);
+					else
+					{
+						callback(null,res);
+					}
+				}
+				else
+				{
+					console.error("No callback specified for request.");
+				}
 			
 			});
 		
@@ -86,73 +274,20 @@ function Server(){
 		 */
 		socket.on('getGenres',function(callback){
 		
-			event.emit('queryCollection','SELECT DISTINCT genre FROM album WHERE genre != "" COLLATE NOCASE'),function(err,res){
+			event.emit('queryCollection','SELECT DISTINCT genre FROM album WHERE genre != "" COLLATE NOCASE',function(err,res){
 			
-				if ( err ) console.error(err);
-			
-				if ( typeof callback == "function" ) callback(res);
-				
-				else console.error("Callback is not a function. Huh?");
-			
-			};
-		
-		});
-		
-		/**
-		 * getArtistAlbums
-		 * @description Lists the albums belonging to a given artist.
-		 * @param artist_id - the id of the artist to list albums for.
-		 * @param callback - function to be sent the result.
-		 */
-		socket.on('getArtistAlbums',function(artist_id,callback){
-		
-			event.emit('queryCollection','SELECT name, id, tracks, art_small, art_medium, art_large FROM album WHERE artist_id = "' + artist_id + '"',function(err,res){
-			
-				if ( err ) console.error(err);
-			
-				if ( typeof callback == "function" ) callback(res);
-				
-				else console.error("Callback is not a function. Huh?");
-			
-			});
-		
-		});
-		
-		/**
-		 * getAlbumTracks
-		 * @description Lists the tracks belonging to a given album.
-		 * @param album_id - the id of the album to list tracks for.
-		 * @param callback - function to be sent the result.
-		 */
-		socket.on('getAlbumTracks',function(album_id,callback){
-		
-			event.emit('queryCollection','SELECT name, id, no, length, bitrate, samplerate FROM track WHERE album_id = "' + album_id + '"',function(err,res){
-			
-				if ( err ) console.error(err);
-			
-				if ( typeof callback == "function" ) callback(res);
-				
-				else console.error("Callback is not a function. Huh?");
-			
-			});
-		
-		});
-		 
-		/**
-		 * getArtistTracks
-		 * @description Lists all tracks belonging to a given artist.
-		 * @param artist_id - the id of the artist to list albums for.
-		 * @param callback - function to be sent the result.
-		 */
-		socket.on('getArtistTracks',function(artist_id,callback){
-		
-			event.emit('queryCollection','SELECT name,id FROM track WHERE artist_id = "' + artist_id + '"',function(err,res){
-			
-				if ( err ) console.error(err);
-				
-				if ( typeof callback == "function" ) callback(res);
-				
-				else console.error("Callback is not a function. Huh?");
+				if ( typeof callback == "function" )
+				{
+					if ( err ) callback(err);
+					else
+					{
+						callback(null,res);
+					}
+				}
+				else
+				{
+					console.error("No callback specified for request.");
+				}
 			
 			});
 		
@@ -175,21 +310,8 @@ function Server(){
 				
 					if ( err ){
 					
-						// callback with the error.
 						if ( typeof callback == "function" ) callback(err);
-						
-						else console.error("Callback is not a function. Huh?");
-						
-						// throw the error.
-						console.error(err);
-					}
-					else {
-					
-						// callback when we're done.
-						if ( typeof callback == "function" ) callback();
-						
-						else console.error("Callback is not a function. Huh?");
-					
+						else console.error(err);
 					}
 				
 				});
