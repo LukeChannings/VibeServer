@@ -214,14 +214,14 @@ function Server(){
 		});
 		
 		/**
-		 * getTracksInAlbum
-		 * @description Lists the tracks belonging to a given album.
-		 * @param album_id - the id of the album to list tracks for.
-		 * @param callback - function to be sent the result.
+		 * getTracksInGenre
+		 * @description Lists all tracks in a genre..
+		 * @param genre (string) - The name of the genre.
+		 * @param callback (function) - Function to be sent the result.
 		 */
-		socket.on('getTracksInAlbum',function(album_id,callback){
+		socket.on('getTracksInGenre',function(genre,callback){
 		
-			event.emit('queryCollection','SELECT name, id, no, length, bitrate, samplerate FROM track WHERE album_id = "' + album_id + '"',function(err,res){
+			event.emit('queryCollection','SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND genre.id = "' + genre + '"',function(err,res){
 			
 				if ( typeof callback == "function" )
 				{
@@ -248,7 +248,61 @@ function Server(){
 		 */
 		socket.on('getTracksByArtist',function(artist_id,callback){
 		
-			event.emit('queryCollection','SELECT name,id FROM track WHERE artist_id = "' + artist_id + '"',function(err,res){
+			event.emit('queryCollection','SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND artist.id = "' + artist_id + '"',function(err,res){
+			
+				if ( typeof callback == "function" )
+				{
+					if ( err ) callback(err);
+					else
+					{
+						callback(null,res);
+					}
+				}
+				else
+				{
+					console.error("No callback specified for request.");
+				}
+			
+			});
+		
+		});
+		
+		/**
+		 * getTracksInAlbum
+		 * @description Lists the tracks belonging to a given album.
+		 * @param album_id - the id of the album to list tracks for.
+		 * @param callback - function to be sent the result.
+		 */
+		socket.on('getTracksInAlbum',function(album_id,callback){
+		
+			event.emit('queryCollection','SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND album.id = "' + album_id + '"',function(err,res){
+			
+				if ( typeof callback == "function" )
+				{
+					if ( err ) callback(err);
+					else
+					{
+						callback(null,res);
+					}
+				}
+				else
+				{
+					console.error("No callback specified for request.");
+				}
+			
+			});
+		
+		});
+		
+		/**
+		 * getTrack
+		 * @description Get the track metadata.
+		 * @param album_id - the id of the album to list tracks for.
+		 * @param callback - function to be sent the result.
+		 */
+		socket.on('getTrack',function(track_id,callback){
+		
+			event.emit('queryCollection','SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND track.id = "' + track_id + '"',function(err,res){
 			
 				if ( typeof callback == "function" )
 				{
