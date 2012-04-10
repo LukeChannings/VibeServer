@@ -284,7 +284,7 @@ function Server(){
 				var sql = 'SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND album.id = "' + album_id + '"';
 			}
 		
-			event.emit('queryCollection',,function(err,res){
+			event.emit('queryCollection',sql,function(err,res){
 			
 				if ( typeof callback == "function" )
 				{
