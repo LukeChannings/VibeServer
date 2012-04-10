@@ -319,6 +319,31 @@ function Server(){
 			}
 		});
 		
+		/**
+		 * search
+		 * @description Finds entries matching the query in the collection.
+		 * @param query (string) - text to search for.
+		 * @param callback (function) - function to handle the results.
+		 */
+		socket.on('search',function(query,callback){
+		
+			if ( typeof query == 'string' && typeof callback == 'function' )
+			{
+				event.emit('queryCollection','SELECT track.name AS trackname, album.name AS albumname, album.id AS albumid, artist.name AS artistname, artist.id AS artistid, album.id AS artistid, track.id AS trackid FROM track, album, artist WHERE track.album_id = album.id AND track.artist_id = artist.id AND track.name LIKE "%' + query + '%"',function(err,res){
+				
+					if ( err )
+					{
+						console.error(err);
+					}
+				
+					callback(res);
+				
+				});
+				
+			}
+		
+		});
+		
 	});
 	
 	/**
