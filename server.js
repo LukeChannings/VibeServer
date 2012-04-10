@@ -277,7 +277,7 @@ function Server(){
 		
 			if ( minimal )
 			{
-				var sql = 'SELECT track.name, track.id FROM track, album WHERE track.album_id = album.id AND track.id = "' + album_id + '"';
+				var sql = 'SELECT track.name, track.id FROM track, album WHERE track.album_id = album.id AND album.id = "' + album_id + '"';
 			}
 			else
 			{
