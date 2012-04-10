@@ -221,7 +221,7 @@ function Server(){
 		 */
 		socket.on('getTracksInGenre',function(genre,callback){
 		
-			event.emit('queryCollection','SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND genre.id = "' + genre + '"',function(err,res){
+			event.emit('queryCollection','SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year, track.length AS tracklength FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND genre.id = "' + genre + '"',function(err,res){
 			
 				if ( typeof callback == "function" )
 				{
@@ -248,7 +248,7 @@ function Server(){
 		 */
 		socket.on('getTracksByArtist',function(artist_id,callback){
 		
-			event.emit('queryCollection','SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND artist.id = "' + artist_id + '"',function(err,res){
+			event.emit('queryCollection','SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year, track.length AS tracklength FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND artist.id = "' + artist_id + '"',function(err,res){
 			
 				if ( typeof callback == "function" )
 				{
@@ -281,7 +281,7 @@ function Server(){
 			}
 			else
 			{
-				var sql = 'SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND album.id = "' + album_id + '"';
+				var sql = 'SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year, track.length AS tracklength FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND album.id = "' + album_id + '"';
 			}
 		
 			event.emit('queryCollection',sql,function(err,res){
@@ -311,7 +311,7 @@ function Server(){
 		 */
 		socket.on('getTrack',function(track_id,callback){
 		
-			event.emit('queryCollection','SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND track.id = "' + track_id + '"',function(err,res){
+			event.emit('queryCollection','SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year, track.length AS tracklength FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND track.id = "' + track_id + '"',function(err,res){
 			
 				if ( typeof callback == "function" )
 				{
