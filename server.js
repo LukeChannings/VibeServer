@@ -273,9 +273,18 @@ function Server(){
 		 * @param album_id - the id of the album to list tracks for.
 		 * @param callback - function to be sent the result.
 		 */
-		socket.on('getTracksInAlbum',function(album_id,callback){
+		socket.on('getTracksInAlbum',function(album_id,minimal,callback){
 		
-			event.emit('queryCollection','SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND album.id = "' + album_id + '"',function(err,res){
+			if ( minimal )
+			{
+				var sql = 'SELECT track.name, track.id FROM track, album WHERE track.album_id = album.id AND track.id = "' + album_id + '"';
+			}
+			else
+			{
+				var sql = 'SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND album.id = "' + album_id + '"';
+			}
+		
+			event.emit('queryCollection',,function(err,res){
 			
 				if ( typeof callback == "function" )
 				{
