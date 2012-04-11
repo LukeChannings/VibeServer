@@ -221,7 +221,7 @@ function Server(){
 		 */
 		socket.on('getTracksInGenre',function(genre,callback){
 		
-			event.emit('queryCollection','SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year, track.length AS tracklength FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND genre.id = "' + genre + '"',function(err,res){
+			event.emit('queryCollection','SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year, track.length AS tracklength FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND album.genre = "' + genre + '"',function(err,res){
 			
 				if ( typeof callback == "function" )
 				{
