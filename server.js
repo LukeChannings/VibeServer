@@ -392,7 +392,7 @@ function Server(){
 		
 			if ( typeof query == 'string' && typeof callback == 'function' )
 			{
-				event.emit('queryCollection','SELECT track.name AS trackname, album.name AS albumname, album.id AS albumid, artist.name AS artistname, artist.id AS artistid, album.id AS artistid, track.id AS trackid FROM track, album, artist WHERE track.album_id = album.id AND track.artist_id = artist.id AND track.name LIKE "%' + query + '%"',function(err,res){
+				event.emit('queryCollection','SELECT track.name AS trackname, album.name AS albumname, album.id AS albumid, artist.name AS artistname, artist.id AS artistid, track.id AS trackid FROM track, album, artist WHERE track.album_id = album.id AND track.artist_id = artist.id AND track.name LIKE "%' + query + '%"',function(err,res){
 				
 					if ( err )
 					{
