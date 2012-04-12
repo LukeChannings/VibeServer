@@ -16,6 +16,8 @@ function Server(){
 	io.enable('browser client minification');
 	io.enable('browser client gzip');
 	io.set('log level', 1);
+	io.set('flash policy server', false);
+	io.set('flash policy port', 10843);
 	io.set('transports', [ 'flashsocket', 'websocket', 'htmlfile', 'xhr-polling' ]);
 	
 	var net = require("net"),
@@ -39,7 +41,7 @@ function Server(){
 	        socket.write("</cross-domain-policy>\n");
 	        socket.end();   
 	    }
-	).listen(843);
+	).listen(10843);
 	
 	// socket.io API methods.
 	io.sockets.on('connection',function(socket){
