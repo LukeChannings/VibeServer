@@ -16,7 +16,8 @@ function Server(){
 	io.enable('browser client minification');
 	io.enable('browser client gzip');
 	io.set('log level', 1);
-	io.set('transports', ['websocket','flashsocket','jsonp-polling']);
+	io.set('flash policy port', 1025);
+	io.set('transports', [ 'flashsocket', 'websocket', 'htmlfile', 'xhr-polling' ]);
 	
 	// socket.io API methods.
 	io.sockets.on('connection',function(socket){
