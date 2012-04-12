@@ -16,7 +16,6 @@ function Server(){
 	io.enable('browser client minification');
 	io.enable('browser client gzip');
 	io.set('log level', 1);
-	io.set('flash policy port', 10843);
 	io.set('transports', [ 'flashsocket', 'websocket', 'htmlfile', 'xhr-polling' ]);
 	
 	var net = require("net"),
