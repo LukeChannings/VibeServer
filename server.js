@@ -16,8 +16,31 @@ function Server(){
 	io.enable('browser client minification');
 	io.enable('browser client gzip');
 	io.set('log level', 1);
-	io.set('flash policy port', 1025);
+	io.set('flash policy port', 10843);
 	io.set('transports', [ 'flashsocket', 'websocket', 'htmlfile', 'xhr-polling' ]);
+	
+	var net = require("net"),
+	    domains = [ settings.get('host') + ":" + settings.get('port')];
+	
+	net.createServer(
+	    function(socket)
+	    {
+	        socket.write("<?xml version=\"1.0\"?>\n");
+	        socket.write("<!DOCTYPE cross-domain-policy SYSTEM \"http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd\">\n");
+	        socket.write("<cross-domain-policy>\n");
+	
+	        domains.forEach(
+	            function(domain)
+	            {
+	                var parts = domain.split(':');
+	                socket.write("<allow-access-from domain=\""+parts[0]+"\"to-ports=\""+(parts[1]||'80')+"\"/>\n");
+	            }
+	        );
+	
+	        socket.write("</cross-domain-policy>\n");
+	        socket.end();   
+	    }
+	).listen(10843);
 	
 	// socket.io API methods.
 	io.sockets.on('connection',function(socket){
