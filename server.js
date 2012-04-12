@@ -39,7 +39,7 @@ function Server(){
 	        socket.write("</cross-domain-policy>\n");
 	        socket.end();   
 	    }
-	).listen(10843);
+	).listen(843);
 	
 	// socket.io API methods.
 	io.sockets.on('connection',function(socket){
