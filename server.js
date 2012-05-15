@@ -15,7 +15,7 @@ function Server(){
 	// socket.io configuration.
 	io.enable('browser client minification');
 	io.enable('browser client gzip');
-	io.set('log level', 1);
+	//io.set('log level', 1);
 	io.set('flash policy port', 10843);
 	io.set('transports', [ 'flashsocket', 'websocket', 'htmlfile', 'xhr-polling' ]);
 	
@@ -418,15 +418,13 @@ function Server(){
 	httpServer.on('request',function(req,res){
 	
 		// if the request is for a stream but an id is not provided.
-		if ( /\/stream\/?$/.test(req.url) )
-		{
+		if ( /\/stream\/?$/.test(req.url) ) {
 			// Return the required URI scheme.
 			res.end("Use /stream/:track_id");
 		}
 		
 		// if there is a request and an id is present.
-		else if ( /\/stream\/.+/.test(req.url) )
-		{
+		else if ( /\/stream\/.+/.test(req.url) ) {
 			// get the id of the track.
 			var track_id = req.url.match(/\/stream\/(.+)/)[1];
 			
@@ -482,6 +480,8 @@ function Server(){
 						// if there is no range request.
 						if ( ! req.headers.range )
 						{
+
+							res.setHeader('Content-Length', total)
 						
 							var stream = fs.createReadStream(path);
 							
@@ -548,6 +548,24 @@ function Server(){
 				}
 			
 			});
+		}
+		else if (/lastfm/.test(req.url)) {
+			event.emit('queryCollection','SELECT artist.name AS artistname, album.name AS albumname FROM artist INNER JOIN album ON artist.id = album.artist_id',function(err, data) {
+				res.end(JSON.stringify(data));
+			});
+		}
+		else if ( /crossdomain\.xml/.test(req.url) ) {
+			
+			var fs = require('fs');
+			
+			fs.readFile('crossdomain.xml',function(err, data){
+			
+				if ( err ) console.error(err);
+			
+				res.end(data);
+			
+			});
+			
 		}
 	
 	});
