@@ -80,7 +80,7 @@ function Server(){
 		 * @param name (string) - genre name.
 		 * @param callback (function) - function that will be sent the result.
 		 */
-		socket.on('getArtistsInGenre',function(name,callback){
+		socket.on('getArtistsInGenre',function(name, callback){
 		
 			var artists = [];
 			
@@ -274,18 +274,11 @@ function Server(){
 		 * @param album_id - the id of the album to list tracks for.
 		 * @param callback - function to be sent the result.
 		 */
-		socket.on('getTracksInAlbum',function(album_id,minimal,callback){
+		socket.on('getTracksInAlbum', function(album_id, callback) {
 		
-			if ( minimal )
-			{
-				var sql = 'SELECT track.name, track.id FROM track, album WHERE track.album_id = album.id AND album.id = "' + album_id + '"';
-			}
-			else
-			{
-				var sql = 'SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year, track.length AS tracklength FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND album.id = "' + album_id + '"';
-			}
+			var sql = 'SELECT track.name AS trackname, track.id AS trackid, album.name AS albumname, track.no AS trackno, album.tracks AS trackof, artist.name AS artistname, album.year AS year, track.length AS tracklength FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND album.id = "' + album_id + '"';
 		
-			event.emit('queryCollection',sql,function(err,res){
+			event.emit('queryCollection', sql, function(err,res) {
 			
 				if ( typeof callback == "function" )
 				{
@@ -303,6 +296,23 @@ function Server(){
 			});
 		
 		});
+		
+		/**
+		 * gets a list of all tracks in an album with only important information included.
+		 * @param albumId {String} the identifier for the album.
+		 * @param callback the function callback that will receive the result.
+		 */
+		socket.on('getTracksInAlbumShort', function(albumId, callback) {
+		
+			var sql = 'SELECT track.name AS trackname, track.id AS trackid, track.no as trackno FROM track, album, artist WHERE track.album_id = album.id AND album.artist_id = artist.id AND album.id = "' + albumId + '"';
+			
+			event.emit('queryCollection', sql, function(err, res) {
+			
+				if ( err ) console.error(err);
+				
+				callback(res);
+			})
+		})
 		
 		/**
 		 * getTrack
@@ -549,11 +559,8 @@ function Server(){
 			
 			});
 		}
-		else if (/lastfm/.test(req.url)) {
-			event.emit('queryCollection','SELECT artist.name AS artistname, album.name AS albumname FROM artist INNER JOIN album ON artist.id = album.artist_id',function(err, data) {
-				res.end(JSON.stringify(data));
-			});
-		}
+		
+		// flash crossdomain file.
 		else if ( /crossdomain\.xml/.test(req.url) ) {
 			
 			var fs = require('fs');
@@ -564,10 +571,8 @@ function Server(){
 			
 				res.end(data);
 			
-			});
-			
+			})
 		}
-	
 	});
 	
 }
