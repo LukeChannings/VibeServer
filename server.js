@@ -565,6 +565,8 @@ function Server(){
 			
 			var fs = require('fs');
 			
+			res.setHeader("Access-Control-Allow-Origin", "*")
+
 			fs.readFile('crossdomain.xml',function(err, data){
 			
 				if ( err ) console.error(err);
