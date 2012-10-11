@@ -69,17 +69,17 @@ function Collection(callback){
 			return;
 		}
 	
-		probe(path,function(data){
+		probe(path , function(err, data) {
 		
 			// if there is no metadata for the file..
-			if ( ! data.metadata )
-			{
-			
+			if ( err || ! data || ! data.metadata ) {
+
+				err && console.error(err)
+
 				// callback without metadata.
-				callback(null);
-			}
-			else
-			{
+				callback && callback(null);
+
+			} else {
 				
 				try
 				{
@@ -156,7 +156,7 @@ function Collection(callback){
 		
 		if ( typeof eventName == "string" && typeof eventHandler == "function" )
 		{
-			event.on(eventName,eventHandler);
+			event.on(eventName, eventHandler);
 		}
 		else
 		{
