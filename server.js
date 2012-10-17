@@ -4,56 +4,60 @@
  */
 function Server(){
 
-	var http = require('http');
+	var
+
+	http = require('http'),
 
 	// make an HTTP server.
-	var httpServer = http.createServer().listen(settings.get('port'));
+	httpServer = http.createServer().listen(settings.get('port')),
 
 	// make a socket.io instance and listen on the default port.
-	var io = require('socket.io').listen(httpServer);
+	io = require('socket.io').listen(httpServer),
 	
+	// array to contain all open sockets.
+	clients = []
+
+	global.clients = clients
+
 	// socket.io configuration.
 	io.enable('browser client minification');
 	io.enable('browser client gzip');
-	//io.set('log level', 1);
+	io.set('log level', 1);
 	io.set('flash policy port', 10843);
 	io.set('transports', [ 'flashsocket', 'websocket', 'htmlfile', 'xhr-polling' ]);
 	
-	// socket.io API methods.
-	io.sockets.on('connection',function(socket){
+	// bind socket methods on connection.
+	io.of('/vibeplayer').on('connection', function( socket ) {
 	
+		clients.push(socket)
+
 		/**
-		 * getArtists
-		 * @description Returns an array of artist objects.
+		 * list of all artists
 		 * @param callback - function to be sent the result.
 		 */
-		socket.on('getArtists',function(callback){
+		socket.on('getArtists', function( callback ) {
 		
 			event.emit('queryCollection','SELECT name, id, albums FROM artist WHERE name != "" ORDER BY name COLLATE NOCASE',function(err,res){
 				
 				if ( typeof callback == "function" )
 				{
-					if ( err ) callback(err);
-					else
-					{
+					if ( err ) {
+						callback(err);
+					} else {
 						callback(null,res);
 					}
-				}
-				else
-				{
+				} else {
 					console.error("No callback specified for request.");
 				}
-			
-			});
-		});
+			})
+		})
 
 		/**
-		 * getArtistNameFromId
-		 * @description get the name of the artist from an artist id.
+		 * get the name of the artist from an artist id
 		 * @param id (string) - artist id.
 		 * @param callback (function) - function that will be sent the result.
 		 */
-		socket.on('getArtistNameFromId',function(id,callback){
+		socket.on('getArtistNameFromId',function( id, callback ) {
 		
 			event.emit('queryCollection','SELECT name FROM artist WHERE id = "' + id + '"',function(err,res){
 			
@@ -75,12 +79,11 @@ function Server(){
 		});
 
 		/**
-		 * getArtistsInGenre
-		 * @description get a the metadata for all artists in a given genre.
+		 * get a the metadata for all artists in a given genre
 		 * @param name (string) - genre name.
 		 * @param callback (function) - function that will be sent the result.
 		 */
-		socket.on('getArtistsInGenre',function(name, callback){
+		socket.on('getArtistsInGenre', function( name, callback ) {
 		
 			var artists = [];
 			
@@ -109,11 +112,10 @@ function Server(){
 		});
 
 		/**
-		 * getAlbums
-		 * @description Lists all albums in the collection.
+		 * lists all albums in the collection.
 		 * @param callback - function to be sent the result.
 		 */
-		socket.on('getAlbums',function(callback){
+		socket.on('getAlbums', function( callback ) {
 		
 			event.emit('queryCollection','SELECT name, id, tracks, art_small, art_medium, art_large FROM album WHERE name != "" ORDER BY name COLLATE NOCASE',function(err,res){
 				
@@ -131,12 +133,10 @@ function Server(){
 				}
 			
 			});
-		
-		});
+		})
 
 		/**
-		 * getAlbum
-		 * @description returns the album metadata for the given album_id.
+		 * gets the album metadata for the given album_id.
 		 * @param id (string) - the album_id.
 		 * @param callback (function) - the function that takes the result.
 		 */
@@ -158,12 +158,10 @@ function Server(){
 				}
 			
 			});
-		
-		});
+		})
 		
 		/**
-		 * getAlbumsByArtist
-		 * @description Lists the albums belonging to a given artist.
+		 * lists the albums belonging to a given artist.
 		 * @param artist_id - the id of the artist to list albums for.
 		 * @param callback - function to be sent the result.
 		 */
@@ -185,12 +183,10 @@ function Server(){
 				}
 			
 			});
-		
-		});
+		})
 		
 		/**
-		 * getTracks
-		 * @description Lists all tracks in the collection.
+		 * lists all tracks in the collection.
 		 * @param callback - (function) called when the data has been fetched.
 		 */
 		socket.on('getTracks',function(callback){
@@ -211,12 +207,10 @@ function Server(){
 				}
 			
 			});
-		
-		});
+		})
 		
 		/**
-		 * getTracksInGenre
-		 * @description Lists all tracks in a genre..
+		 * lists all tracks in a genre..
 		 * @param genre (string) - The name of the genre.
 		 * @param callback (function) - Function to be sent the result.
 		 */
@@ -238,12 +232,10 @@ function Server(){
 				}
 			
 			});
-		
-		});
+		})
 		
 		/**
-		 * getTracksByArtist
-		 * @description Lists all tracks belonging to a given artist.
+		 * lists all tracks belonging to a given artist.
 		 * @param artist_id - the id of the artist to list albums for.
 		 * @param callback - function to be sent the result.
 		 */
@@ -265,12 +257,10 @@ function Server(){
 				}
 			
 			});
-		
-		});
+		})
 		
 		/**
-		 * getTracksInAlbum
-		 * @description Lists the tracks belonging to a given album.
+		 * lists the tracks belonging to a given album.
 		 * @param album_id - the id of the album to list tracks for.
 		 * @param callback - function to be sent the result.
 		 */
@@ -294,8 +284,7 @@ function Server(){
 				}
 			
 			});
-		
-		});
+		})
 		
 		/**
 		 * gets a list of all tracks in an album with only important information included.
@@ -315,8 +304,7 @@ function Server(){
 		})
 		
 		/**
-		 * getTrack
-		 * @description Get the track metadata.
+		 * get the track metadata.
 		 * @param album_id - the id of the album to list tracks for.
 		 * @param callback - function to be sent the result.
 		 */
@@ -338,12 +326,10 @@ function Server(){
 				}
 			
 			});
-		
-		});
+		})
 		
 		/**
-		 * getGenres
-		 * @description Lists all genres in the collection.
+		 * lists all genres in the collection.
 		 * @param callback - function to be sent the result.
 		 */
 		socket.on('getGenres',function(callback){
@@ -364,12 +350,10 @@ function Server(){
 				}
 			
 			});
-		
-		});
+		})
 		
 		/**
-		 * setRating
-		 * @description set a rating for a track.
+		 * set a rating for a track.
 		 * @param track_id (string) - ID for the track we're setting the rating for.
 		 * @param rating (int) - The rating of the track. (0-5)
 		 * @param callback (function) - called once the operation is complete. (Returns true or false for success status.)
@@ -391,41 +375,91 @@ function Server(){
 				});
 				
 			}
-		});
+		})
 		
 		/**
-		 * search
-		 * @description Finds entries matching the query in the collection.
+		 * finds entries matching the query in the collection.
 		 * @param query (string) - text to search for.
 		 * @param callback (function) - function to handle the results.
 		 */
 		socket.on('search',function(query,callback){
 		
-			if ( typeof query == 'string' && typeof callback == 'function' )
-			{
+			if ( typeof query == 'string' && typeof callback == 'function' ) {
 				event.emit('queryCollection','SELECT track.name AS trackname, album.name AS albumname, album.id AS albumid, artist.name AS artistname, artist.id AS artistid, track.id AS trackid FROM track, album, artist WHERE track.album_id = album.id AND track.artist_id = artist.id AND track.name LIKE "%' + query + '%"',function(err,res){
 				
-					if ( err )
-					{
+					if ( err ) {
 						console.error(err);
 					}
 				
-					callback(res);
+					callback(res)
 				
-				});
-				
+				})
 			}
-		
-		});
-		
-	});
-	
+		})
+
+		// remove the socket from the list on disconnection.
+		socket.on('disconnect', function( socket ) {
+
+			clients.splice(clients.indexOf(socket), 1)
+		})
+	})
+
+	// bind vibe control methods.
+	io.of('/vibecontrol').on('connection', function( socket ) {
+
+		/**
+		 * lists the clients currently connected.
+		 * @param callback {Function} handles the list of sockets.
+		 */
+		socket.on('listClients', function( callback ) {
+
+			var list = []
+
+			clients.forEach(function(client, i) {
+
+				list.push({
+					index : i,
+					id : client.id,
+
+				})
+			})
+
+			callback(list)
+		})
+
+		/**
+		 * relays a message to a client.
+		 * @param id {String} identification for the socket.
+		 * @param _event {String} the event to send.
+		 * @param options {Object} arguments to send with the event.
+		 */
+		socket.on("relayMessageToClient", function( id, _event, options ) {
+
+			var _socket
+
+			for ( var i = 0; i < clients.length; i += 1 ) {
+
+				if ( clients[i].id === id ) {
+
+					_socket = clients[i]
+
+					break
+				}
+			}
+
+			if ( _socket ) {
+
+				_socket.emit("externalEvent", _event, options)
+			}
+		})
+	})
+
 	/**
 	 * stream
 	 * @description Handles stream requests.
 	 * @uri_scheme /stream/:track_id
 	 */
-	httpServer.on('request',function(req,res){
+	httpServer.on('request', function(req, res){
 	
 		// if the request is for a stream but an id is not provided.
 		if ( /\/stream\/?$/.test(req.url) ) {

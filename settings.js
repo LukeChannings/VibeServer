@@ -16,17 +16,21 @@ function Settings(callback){
 		fs.readFile("settings.json",function(err,data){
 		
 			try {
+
 				// parse the JSON file and put the resulting object into settings.
 				settings = JSON.parse(data);
 				
 				// run the callback when the settings file is loaded.
-				callback();
-			}
-			catch(ex)
-			{
+				callback && callback();
+
+			} catch(ex) {
+
 				// throw an error if the settings file does not exist or is broken.
-				if ( err ) console.error("Settings file does not exist.");
-				else console.error("Settings file is malformed.");
+				if ( ex ) {
+					console.error(ex.message)
+				} else {
+					console.error("Settings file is malformed.")
+				}
 			}
 			
 		});
