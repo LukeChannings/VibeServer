@@ -12,16 +12,22 @@ if (typeof define !== 'function') {
 
 define(function() {
 
-	var mime = require("mime"),
-		walk = require("walk"),
-		walker,
-		mimeTypes = ["audio/mpeg"]
+	var
+
+	// dependencies.
+	mime = require("mime"),
+	walk = require("walk"),
+
+	// locals.
+	mimeTypes = ["audio/mpeg"],
+	walker
 
 	return function(directories, _mimeTypes, callback) {
 
 		// set a list of mime types to check for.
 		mimeTypes = _mimeTypes instanceof Array ? _mimeTypes : mimeTypes
 
+		// make certain the directories 
 		directories = directories instanceof Array ? directories : [directories]
 
 		directories.forEach(function(directory) {
@@ -45,7 +51,7 @@ define(function() {
 
 			walker.on("end", function() {
 
-				callback(files)
+				callback && callback(files)
 			})
 		})
 		

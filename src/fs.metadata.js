@@ -5,27 +5,33 @@ if (typeof define !== 'function') {
 
 define(function() {
 
-	var taglib = require("taglib"),
-		async = require("async"),
-		lastfm = require("./api.lastfm.js")
+	var
+
+	// dependencies.
+	probe = require("node-ffprobe"),
+	async = require("async"),
+	lastfm = require("./api.lastfm.js"),
 
 	/**
-	 * fetches metadata for each music file.
+	 * fetches metadata for a list of files..
 	 * @param files {Array} list of paths to music files.
 	 * @return {Array} array of objects containing metadata for music files.
 	 */
-	function pathsToMetadata( files, callback, options ) {
+	pathsToMetadata = function( files, callback, options ) {
 
 		options = options || {}
 
-		var metadata = [],
-			count = 0
+		var
+
+		// locals
+		metadata = [],
+		count = 0
 
 		async.map(
 
 			files,
 
-			taglib.read,
+			probe,
 
 			function(err, _metadata) {
 

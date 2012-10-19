@@ -5,9 +5,14 @@ if (typeof define !== 'function') {
 
 define(function() {
 
-	var request = require("request"),
-		lastfmApiKey = "6d97a6df16c5510dcd504956a0c6edb0",
-		lastfmApiBaseUri = "http://ws.audioscrobbler.com/2.0/?format=json"
+	var
+
+	// dependencies.
+	request = require("request"),
+	
+	// locals.
+	lastfmApiKey = "6d97a6df16c5510dcd504956a0c6edb0",
+	lastfmApiBaseUri = "http://ws.audioscrobbler.com/2.0/?format=json"
 
 	/**
 	 * takes a metadata object with properties artist and album and returns the object 
@@ -15,7 +20,9 @@ define(function() {
 	 * @param metadata {Object} object containing metadata for a song, with at least the artist and album properties valid.
 	 * @param callback {Function} 
 	 */
-	function getAlbumArt( metadata, callback ) {
+	function getAlbumArt( _metadata, callback ) {
+
+		var metadata = _metadata.metadata
 
 		request(
 
@@ -33,9 +40,14 @@ define(function() {
 					return
 				}
 
+				
+				var
+
 				// parse the results.
-				var body = JSON.parse( body ),
-					result
+				body = JSON.parse( body ),
+
+				// album art URIs.
+				result
 					
 				try {
 					result = {
@@ -45,15 +57,15 @@ define(function() {
 						"extralarge" : body.album.image[3]["#text"],
 						"mega" : body.album.image[4]["#text"]
 					}
-				}
-				catch (ex) {
-					result = null;
-				}
-				finally {
+				} catch (ex) {
+
+					result = null
+
+				} finally {
 
 					metadata.albumart = result
 
-					callback( null, metadata )
+					callback( null, _metadata )
 				}
 			}
 		)

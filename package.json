@@ -1,0 +1,16 @@
+{
+	"name" : "VibeServer",
+	"version" : "0.0.1",
+	"main" : "VibeServer.js",
+	"author" : "Luke Channings",
+	"engines" : {
+		"node" : ">= 0.8.12"
+	},
+	"dependencies" : {
+		"amdefine" : ">= 0.0.4",
+		"request" : ">= 2.11.4",
+		"mime" : ">= 1.2.7",
+		"walk" : ">= 2.2.1",
+		"node-ffprobe" : ">= 1.2.0"
+	}
+}

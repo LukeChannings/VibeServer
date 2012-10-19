@@ -10,8 +10,7 @@ require("./src/fs.musicFinder.js") (
 
 	// directories containing music.
 	[
-		"/Volumes/Media/Music",
-		"/Users/Luke/Music/Amazon\ MP3"
+		"./TestMusic/"
 	],
 
 	// mime types to search for. (defaults to audio/mpeg if null.)
@@ -20,9 +19,19 @@ require("./src/fs.musicFinder.js") (
 	// callback to handle music files found in the directories.
 	function(files) {
 
-		require("./src/fs.metadata.js").pathsToMetadata(files, function( metadata ) {
+		require("./src/fs.metadata.js").pathsToMetadata (
+			
+			files,
 
-			console.log(metadata)
-		}, { getAlbumArt : true })
+			function( metadata ) {
+
+				console.log(metadata)
+
+			},
+			
+			{
+				getAlbumArt : true
+			}
+		)
 	}
 )
