@@ -1,33 +1,19 @@
-// export the module where requirejs isn't being used.
-if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
-}
-
-define(function() {
-
-	var
-
-	// dependencies.
-	probe = require("node-ffprobe"),
-	async = require("async"),
-	lastfm = require("./api.lastfm.js"),
+define(["node-ffprobe", "async", "api.lastfm"], function(probe, async, lastfm) {
 
 	/**
 	 * fetches metadata for a list of files..
 	 * @param files {Array} list of paths to music files.
+	 * @param callback {Function} called when fetching has completed.
 	 * @return {Array} array of objects containing metadata for music files.
 	 */
-	pathsToMetadata = function( files, callback, options ) {
-
-		options = options || {}
-
-		var
+	var pathsToMetadata = function( files, callback, options ) {
 
 		// locals
-		metadata = [],
-		count = 0
+		var options = options || {}
+		  , metadata = []
+		  , count = 0
 
-		async.map(
+		async.mapSeries(
 
 			files,
 
@@ -56,7 +42,5 @@ define(function() {
 		)
 	}
 
-	return {
-		pathsToMetadata : pathsToMetadata
-	}
+	return { pathsToMetadata : pathsToMetadata }
 })

@@ -1,6 +1,5 @@
 #Vibe Server
 
-
 ##Socket standard scheme.
 
 Once the client is connected a socket will be opened between the server and client, an event is handled using socket.on, and emitted by the server using socket.emit.
@@ -13,12 +12,35 @@ The event can be handled using the following:
 
 	on( 'name of event', function(data, callback) { … } )
 
-##Events
+##User Events
 
-This section documents all events that are emitted by the the server, as well as events that it responds to from the client.
+###addUser << (userData {Object}, callback {Function})
 
-Please see the section above for the standard usage of events, how data should be emitted and handled.
+The addUser event creates a user in the database, the userData object must conform to the following schema:
 
-###metadata
+	var User = new Schema({
+		  name : String
+		, digest : String
+		, properties : {}
+		, collections : [Collection]
+		, playlists : [Playlist]
+	})
 
-The metadata event is used for getting the metadata for an item in the collection.
+__Note__: every user property except the name can be modified after creation. 
+
+Example:
+
+	socket.emit(
+		  'addUser'
+		, {name : userName, password : "foo"}
+		, function(err) {
+
+			if ( err ) {
+				// handle error
+			}
+
+			// success.
+		  }
+	)
+
+__Note__: a password property will be transformed into a digest property by the create user method.

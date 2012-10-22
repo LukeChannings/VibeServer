@@ -7,10 +7,11 @@
 		"node" : ">= 0.8.12"
 	},
 	"dependencies" : {
-		"amdefine" : ">= 0.0.4",
-		"request" : ">= 2.11.4",
-		"mime" : ">= 1.2.7",
-		"walk" : ">= 2.2.1",
-		"node-ffprobe" : ">= 1.2.0"
+		  "requirejs" : ">= 2.1.1"
+		, "request" : ">= 2.11.4"
+		, "mime" : ">= 1.2.7"
+		, "walk" : ">= 2.2.1"
+		, "node-ffprobe" : ">= 1.2.0"
+		, "socket.io" : ">= 0.9.10"
 	}
 }

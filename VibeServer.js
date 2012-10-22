@@ -5,33 +5,47 @@
  * @copyright 2012, All Rights Reserved.
  */
 
-// find some music.
-require("./src/fs.musicFinder.js") (
+var requirejs = require('requirejs')
+  , vibe = {}
 
-	// directories containing music.
-	[
-		"./TestMusic/"
-	],
+// require.js configuration.
+requirejs.config({
+	  nodeRequire : require
+	, baseUrl: __dirname + '/src'
+	, deps : [
+		  'db'
+		, 'db.settings'
+		, 'db.users'
+		, 'fs.musicFinder'
+		, 'fs.metadata'
+		, 'api.vibe'
+	]
+	, callback : function( db, Settings, Users ) {
 
-	// mime types to search for. (defaults to audio/mpeg if null.)
-	null,
+		var _arguments = Array.prototype.splice.call(arguments, 0)
 
-	// callback to handle music files found in the directories.
-	function(files) {
+		// create a settings instance.
+		new Settings(db, function( settings ) {
 
-		require("./src/fs.metadata.js").pathsToMetadata (
-			
-			files,
+			// push the instance into the initialisation arguments.
+			_arguments.push(settings)
 
-			function( metadata ) {
+			// create a users instance.
+			new Users(db, function( users ) {
 
-				console.log(metadata)
+				// push the users instance into the initialisation arguments.
+				_arguments.push(users)
 
-			},
-			
-			{
-				getAlbumArt : true
-			}
-		)
+				// initialise in the context of the root vibe object
+				// with the dependencies arguments.
+				init.apply(vibe, _arguments)
+			})
+		})
 	}
-)
+})
+
+// VibeServer initialisation.
+function init( db, Settings, Users, musicFinder, fsMetadata, VibeApi, settings, users ) {
+
+	new VibeApi( settings, db, users )
+}

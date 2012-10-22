@@ -1,18 +1,8 @@
-// export the module where requirejs isn't being used.
-if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
-}
+define(["request"], function(request) {
 
-define(function() {
-
-	var
-
-	// dependencies.
-	request = require("request"),
-	
 	// locals.
-	lastfmApiKey = "6d97a6df16c5510dcd504956a0c6edb0",
-	lastfmApiBaseUri = "http://ws.audioscrobbler.com/2.0/?format=json"
+	var lastfmApiKey = "6d97a6df16c5510dcd504956a0c6edb0"
+	  , lastfmApiBaseUri = "http://ws.audioscrobbler.com/2.0/?format=json"
 
 	/**
 	 * takes a metadata object with properties artist and album and returns the object 
@@ -20,7 +10,7 @@ define(function() {
 	 * @param metadata {Object} object containing metadata for a song, with at least the artist and album properties valid.
 	 * @param callback {Function} 
 	 */
-	function getAlbumArt( _metadata, callback ) {
+	var getAlbumArt = function( _metadata, callback ) {
 
 		var metadata = _metadata.metadata
 
@@ -39,23 +29,17 @@ define(function() {
 
 					return
 				}
-
 				
-				var
+				var body = JSON.parse( body )
+				  , result
 
-				// parse the results.
-				body = JSON.parse( body ),
-
-				// album art URIs.
-				result
-					
 				try {
 					result = {
-						"small" : body.album.image[0]["#text"],
-						"medium" : body.album.image[1]["#text"],
-						"large" : body.album.image[2]["#text"],
-						"extralarge" : body.album.image[3]["#text"],
-						"mega" : body.album.image[4]["#text"]
+						  small : body.album.image[0]["#text"]
+						, medium : body.album.image[1]["#text"]
+						, large : body.album.image[2]["#text"]
+						, extraLarge : body.album.image[3]["#text"]
+						, mega : body.album.image[4]["#text"]
 					}
 				} catch (ex) {
 
@@ -71,7 +55,8 @@ define(function() {
 		)
 	}
 
-	return {
-		getAlbumArt : getAlbumArt
-	}
+	// todo.
+	var scrobble = function() {}
+
+	return { getAlbumArt : getAlbumArt }
 })

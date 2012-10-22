@@ -4,23 +4,15 @@
  * @param mimeTypes {Array} acceptible music MIME types, default is only audio/mpeg. 
  * @return {Array} paths to found music files.
  */
-
-// export the module where requirejs isn't being used.
-if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
-}
-
 define(function() {
 
-	var
-
 	// dependencies.
-	mime = require("mime"),
-	walk = require("walk"),
+	var mime = require("mime")
+	  , walk = require("walk")
 
 	// locals.
-	mimeTypes = ["audio/mpeg"],
-	walker
+	var mimeTypes = ["audio/mpeg", "audio/aac", "audio/mp4", "audio/wave"]
+	  , walker
 
 	return function(directories, _mimeTypes, callback) {
 
@@ -40,10 +32,10 @@ define(function() {
 			})
 
 			// handle files found in the walking directory.
-			walker.on("file", function(root, fileStats, next) {
+			walker.on("file", function(root, stat, next) {
 
-				if ( mimeTypes.indexOf(mime.lookup(root + "/" + fileStats.name)) !== -1 ) {
-					files.push(root + "/" + fileStats.name)
+				if ( mimeTypes.indexOf(mime.lookup(root + "/" + stat.name)) !== -1 ) {
+					files.push(root + "/" + stat.name)
 				}
 
 				next()
