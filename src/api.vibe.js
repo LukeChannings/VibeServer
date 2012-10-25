@@ -3,7 +3,7 @@
  */
 define(['http', 'socket.io', 'crypto'], function( http, socketio, crypto ) {
 
-	return function( settings, db, users ) {
+	return function( settings, db, users, callback ) {
 
 		// create servers.
 		var vibeServer = http.createServer().listen(settings.get('port') || 6232)
@@ -117,5 +117,7 @@ define(['http', 'socket.io', 'crypto'], function( http, socketio, crypto ) {
 				res.end(token)
 			}
 		})
+
+		callback && callback(this)
 	}
 })

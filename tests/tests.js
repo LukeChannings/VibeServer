@@ -82,9 +82,7 @@ asyncTest("authentication - valid login parameters", function() {
 				{
 					name : "Luke",
 					password : "toor",
-					collections : [{
-						path : "/Volumes/Media/Music"
-					}]
+					collections : ["/Volumes/Media/Music"]
 				},
 
 				function() {

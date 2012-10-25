@@ -12,6 +12,11 @@ define(['crypto'], function( crypto ) {
 		if ( typeof value !== 'number' && value.indexOf('/') !== -1 ) {
 
 			return parseInt(value.split('/')[0])
+
+		} else if ( typeof value !== 'number' && value.indexOf('-') !== -1 ) {
+
+			return parseInt(value.split('-')[0])
+
 		} else if (  typeof value === 'number' ) {
 
 			return value
@@ -30,7 +35,7 @@ define(['crypto'], function( crypto ) {
 			, albumArtist : { type : String, default : "Unknown Artist" }
 			, track : { type : Number, default : 0, set : numberOfToNumber }
 			, genre : String
-			, year : { type : Number, default : 0000 }
+			, year : { type : Number, default : 0000, set : numberOfToNumber }
 			, mime : String
 			, bitRate : Number
 			, duration : Number
@@ -54,8 +59,8 @@ define(['crypto'], function( crypto ) {
 			  name : String
 			, digest : String
 			, properties : {}
-			, collections : [this.Collection]
-			, playlists : [this.Playlist]
+			, collections : []
+			, playlists : []
 		})
 
 		this.Setting = new Schema({

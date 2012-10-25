@@ -1,12 +1,13 @@
 /**
  * controls user accounts.
  */
-define(['crypto'], function( crypto ) {
+define(['async', 'crypto'], function( async, crypto ) {
 
 	var User
 	  , store = []
 	  , db
 	  , self
+	  , Collection
 
 	/**
 	 * constructs an instance.
@@ -18,8 +19,11 @@ define(['crypto'], function( crypto ) {
 		self = this
 		db = _db
 
-		// create a user model.
+		// get the user model.
 		User = db.mongoose.model('User', db.Schemas.User, 'users')
+
+		// get the Collection model.
+		Collection = db.mongoose.model('Collection', db.Schemas.Collection, 'collections')
 
 		updateStore(function() {
 
@@ -56,6 +60,12 @@ define(['crypto'], function( crypto ) {
 				new User(userData).save(function() {
 
 					updateStore(callback)
+				})
+
+				// create any collections that the user specified.
+				userData.collections.forEach(function(collection) {
+
+					new Collection({path : collection}).save()
 				})
 			}
 		})
@@ -99,13 +109,47 @@ define(['crypto'], function( crypto ) {
 	}
 
 	/**
-	 * adds a collection to a user.
-	 * @param collection {String} the path to the music colleciton.
-	 * @param callback {Function} 
+	 * a list of collections that are in use.
 	 */
-	Users.prototype.scanCollection = function(collection, callback) {
+	Users.prototype.getCollectionModels = function( callback ) {
 
-		console.log("scanning " + collection)
+		var collections = []
+
+		User.find({}, function(err, users) {
+
+			async.forEach(
+
+				users,
+
+				function( user, _next ) {
+
+					async.forEach(
+
+						user.collections,
+
+						function(path, next) {
+
+							Collection.find({path : path}, function(err, document) {
+
+								collections.push(document)
+
+								_next()
+							})
+						},
+
+						function() {
+
+							next()
+						}
+					)
+				},
+
+				function() {
+
+					callback(collections)
+				}
+			)
+		})
 	}
 
 	/**

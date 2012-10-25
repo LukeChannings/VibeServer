@@ -1,46 +1,10 @@
 #Vibe Server
 
-##Socket standard scheme.
+The Vibe Server provides an Api for use with a Vibe Client. The server supports multiple 
+user accounts with multiple music collections, and the server requires authentication to
+establist a connection. See the [Connecting to the server][connect] for details.
 
-Once the client is connected a socket will be opened between the server and client, an event is handled using socket.on, and emitted by the server using socket.emit.
+[connect]: 
 
-The following standard is used when emitting an event:
+##Connecting to the server
 
-	emit( 'name of event', {data object}, function callback() )
-
-The event can be handled using the following:
-
-	on( 'name of event', function(data, callback) { … } )
-
-##User Events
-
-###addUser << (userData {Object}, callback {Function})
-
-The addUser event creates a user in the database, the userData object must conform to the following schema:
-
-	var User = new Schema({
-		  name : String
-		, digest : String
-		, properties : {}
-		, collections : [Collection]
-		, playlists : [Playlist]
-	})
-
-__Note__: every user property except the name can be modified after creation. 
-
-Example:
-
-	socket.emit(
-		  'addUser'
-		, {name : userName, password : "foo"}
-		, function(err) {
-
-			if ( err ) {
-				// handle error
-			}
-
-			// success.
-		  }
-	)
-
-__Note__: a password property will be transformed into a digest property by the create user method.

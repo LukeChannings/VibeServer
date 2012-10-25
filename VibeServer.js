@@ -16,36 +16,43 @@ requirejs.config({
 		  'db'
 		, 'db.settings'
 		, 'db.users'
-		, 'fs.musicFinder'
-		, 'fs.metadata'
+		, 'collection'
 		, 'api.vibe'
 	]
-	, callback : function( db, Settings, Users ) {
+	, callback : function( db, Settings, Users, Collection, VibeApi ) {
 
-		var _arguments = Array.prototype.splice.call(arguments, 0)
+		var _arguments = [db]
 
-		// create a settings instance.
 		new Settings(db, function( settings ) {
 
-			// push the instance into the initialisation arguments.
 			_arguments.push(settings)
 
-			// create a users instance.
-			new Users(db, function( users ) {
+			new Users(db, function(users) {
 
-				// push the users instance into the initialisation arguments.
 				_arguments.push(users)
 
-				// initialise in the context of the root vibe object
-				// with the dependencies arguments.
-				init.apply(vibe, _arguments)
+				new Collection(db, settings, function( collections ) {
+
+					_arguments.push(collections)
+
+					new VibeApi( settings, db, users, function( api ) {
+
+						_arguments.push(api)
+
+						init.apply(vibe, _arguments)
+					})
+				})
 			})
 		})
 	}
 })
 
 // VibeServer initialisation.
-function init( db, Settings, Users, musicFinder, fsMetadata, VibeApi, settings, users ) {
+function init( db, settings, users, collections, api ) {
 
-	new VibeApi( settings, db, users )
+	// check the collection is up to date every 5 minutes.
+	users.getCollectionModels(function(_collections) {
+
+		collections.update(_collections)
+	})
 }
