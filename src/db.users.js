@@ -1,7 +1,7 @@
 /**
  * controls user accounts.
  */
-define(['async', 'crypto'], function( async, crypto ) {
+define(['async', 'crypto', 'events'], function( async, crypto, events ) {
 
 	var User
 	  , store = []
@@ -20,32 +20,35 @@ define(['async', 'crypto'], function( async, crypto ) {
 		db = _db
 
 		// get the user model.
-		User = db.mongoose.model('User', db.Schemas.User, 'users')
+		User = db.Model.User
 
 		// get the Collection model.
-		Collection = db.mongoose.model('Collection', db.Schemas.Collection, 'collections')
+		Collection = db.Model.Collection
 
 		updateStore(function() {
 
 			callback && callback(self)
 		})
+
+		// call EventEmitter constructor on the instance.
+		events.EventEmitter.call(this)
 	}
+
+	// inherit EventEmitter
+	Users.prototype.__proto__ = events.EventEmitter.prototype
 
 	/**
 	 * creates a new user.
 	 * @param user {Object} object conforming to UserSchema.
-	 * @param password {String} the password for the new user. (not saved, used to create a hash.)
 	 * @param callback {Function} called when creation has finished, is passed an err parameter.
 	 */
-	Users.prototype.create = function(userData, password, callback) {
+	Users.prototype.create = function(userData, callback) {
 
-		User.find({name : userData.name}, function(err, user) {
+		var self = this
 
-			if ( err ) {
+		User.findOne({ name : userData.name }, function(err, user) {
 
-				callback && callback(err)
-
-			} else if ( user.length > 0 ) {
+			if ( user || err ) {
 
 				callback && callback("User " + userData.name + " already exists.")
 			} else {
@@ -56,17 +59,60 @@ define(['async', 'crypto'], function( async, crypto ) {
 				// delete the password property.
 				delete userData.password
 
-				// create a new user.
-				new User(userData).save(function() {
+				var collections = userData.collections
 
-					updateStore(callback)
-				})
+				userData.collections = []
 
-				// create any collections that the user specified.
-				userData.collections.forEach(function(collection) {
+				var newUser = new User(userData)
 
-					new Collection({path : collection}).save()
-				})
+				if ( collections && collections.length !== 0 ) {
+
+					async.forEachSeries(
+
+						collections,
+
+						function(path, next) {
+
+							Collection.findOne({path : path}, function(err, collection) {
+
+								if ( collection ) {
+
+									newUser.collections.push(collection)
+
+									next()
+								} else {
+
+									var _collection = new Collection({
+										  path : path
+										, _users : [newUser._id]
+									})
+
+									newUser.collections.push(_collection)
+
+									_collection.save(next)
+								}
+							})
+						},
+
+						function() {
+
+							newUser.save(function() {
+
+								updateStore(callback)
+
+								self.emit("user created")
+							})
+						}
+					)
+				} else {
+
+					newUser.save(function() {
+
+						self.emit("user created")
+
+						updateStore(callback)
+					})
+				}
 			}
 		})
 	}
@@ -80,7 +126,9 @@ define(['async', 'crypto'], function( async, crypto ) {
 	Users.prototype.delete = function(name, digest, callback) {
 
 		if ( store.length === 1 ) {
+
 			callback && callback("Unable to delete the last remaining user.")
+
 		} else {
 
 			User.remove({name : name, digest : digest}, callback)
@@ -94,9 +142,26 @@ define(['async', 'crypto'], function( async, crypto ) {
 	 */
 	Users.prototype.find = function(name, callback) {
 
-		User.find({name : name}, function(err, user) {
+		User.findOne({name : name}, callback)
+	}
 
-			callback && callback(err, user)
+	/**
+	 * finds a user and removes the digest property.
+	 * @param name {String} the name of the user
+	 * @param callback {Function} called when the operation has completed.
+	 */
+	Users.prototype.findSecure = function(name, callback) {
+
+		// find the user, excluding the digest.
+		User.findOne({name : name}).select('-digest').exec(function(err, user) {
+
+			if ( user ) {
+
+				callback(false, user)
+			} else {
+
+				callback(err)
+			}
 		})
 	}
 
@@ -111,45 +176,50 @@ define(['async', 'crypto'], function( async, crypto ) {
 	/**
 	 * a list of collections that are in use.
 	 */
-	Users.prototype.getCollectionModels = function( callback ) {
+	Users.prototype.getCollectionModels = function( user, callback ) {
 
 		var collections = []
 
-		User.find({}, function(err, users) {
+		var query = user ? { name : user } : {}
 
-			async.forEach(
+		User.find(query).populate("collections").exec(function(err, users) {
 
-				users,
+			users.forEach(function(_user) {
 
-				function( user, _next ) {
+				console.log(collections)
 
-					async.forEach(
+				collections = collections.concat(_user.collections)
+			})
 
-						user.collections,
-
-						function(path, next) {
-
-							Collection.find({path : path}, function(err, document) {
-
-								collections.push(document)
-
-								_next()
-							})
-						},
-
-						function() {
-
-							next()
-						}
-					)
-				},
-
-				function() {
-
-					callback(collections)
-				}
-			)
+			callback && callback(collections)
 		})
+	}
+
+	/**
+	 * responds to Api events and maps them to instance methods.
+	 * @param event {String} the name of the event.
+	 * @param args {arguments} if the event is matched all arguments will be passed the matching method.
+	 */
+	Users.prototype.eventResponder = function(event) {
+
+		// re-point events.
+		switch ( event ) {
+
+			case "find":
+
+				// re-point to the secure find method.
+				event = "findSecure"
+				break;
+		}
+		
+		if ( typeof this[event] === 'function' ) {
+
+			this[event].apply(this, Array.prototype.slice.call(arguments, 1))
+
+		} else {
+
+			console.log("user instance has no responder for " + event)
+		}
 	}
 
 	/**

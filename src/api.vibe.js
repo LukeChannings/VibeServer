@@ -1,7 +1,7 @@
 /**
  * Vibe Api and HTTP music streaming server.
  */
-define(['http', 'socket.io', 'crypto'], function( http, socketio, crypto ) {
+define(['http', 'socket.io', 'crypto', 'api.metadata'], function( http, socketio, crypto, MetadataApi ) {
 
 	return function( settings, db, users, callback ) {
 
@@ -9,6 +9,9 @@ define(['http', 'socket.io', 'crypto'], function( http, socketio, crypto ) {
 		var vibeServer = http.createServer().listen(settings.get('port') || 6232)
 		  , socketIO = socketio.listen(vibeServer)
 		  , socketIOClients = []
+
+		// metadata Api instance.
+		  , metadataApi = new MetadataApi(db, users)
 
 		// configure socket.io
 		socketIO.enable('browser client minification')
@@ -33,6 +36,7 @@ define(['http', 'socket.io', 'crypto'], function( http, socketio, crypto ) {
 			  , auth = crypto.createHash('sha256').update(user + _token).digest('hex')
 			  , c = handshakeData.query.c
 
+
 			// check the tokens match.
 			if ( token !== _token ) {
 
@@ -44,17 +48,18 @@ define(['http', 'socket.io', 'crypto'], function( http, socketio, crypto ) {
 			// find the user.
 			users.find(user, function(err, _user) {
 
-				if (err || _user.length === 0 ) {
+				if (err || ! _user ) {
 
 					callback(err, false)
 
 				} else {
 
-					var _c = crypto.createHash('sha256').update(auth + _user[0].digest).digest('hex')
+					var _c = crypto.createHash('sha256').update(auth + _user.digest).digest('hex')
 
 					if ( c === _c ) {
 
 						callback(false, true)
+
 					} else {
 
 						callback(false, false)
@@ -98,11 +103,11 @@ define(['http', 'socket.io', 'crypto'], function( http, socketio, crypto ) {
 
 				socket.emit('ready')
 
-				socket.on('addUser', users.create)
+				// bind users responder.
+				socket.on('user', users.eventResponder.bind(users))
 
-				socket.on('removeUser', users.delete)
-
-				socket.on('getUser', users.find)
+				// bind metadata api.
+				socket.on('metadata', metadataApi.eventResponder.bind(socket))
 			}
 		})
 
@@ -113,6 +118,8 @@ define(['http', 'socket.io', 'crypto'], function( http, socketio, crypto ) {
 			if ( /token$/.test(req.url) ) {
 
 				var token = new Buffer(req.connection.remoteAddress).toString('base64')
+
+				res.setHeader("Access-Control-Allow-Origin", "*")
 
 				res.end(token)
 			}

@@ -10,9 +10,7 @@ define(["request"], function(request) {
 	 * @param metadata {Object} object containing metadata for a song, with at least the artist and album properties valid.
 	 * @param callback {Function} 
 	 */
-	var getAlbumArt = function( _metadata, callback ) {
-
-		var metadata = _metadata.metadata
+	var getAlbumArt = function( metadata, callback ) {
 
 		request(
 
@@ -47,9 +45,9 @@ define(["request"], function(request) {
 
 				} finally {
 
-					metadata.albumart = result
+					metadata.albumArt = result
 
-					callback( null, _metadata )
+					callback( null, metadata )
 				}
 			}
 		)

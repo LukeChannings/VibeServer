@@ -6,7 +6,7 @@
  */
 
 var requirejs = require('requirejs')
-  , vibe = {}
+  , vibe = { isScanning : false }
 
 // require.js configuration.
 requirejs.config({
@@ -21,25 +21,23 @@ requirejs.config({
 	]
 	, callback : function( db, Settings, Users, Collection, VibeApi ) {
 
-		var _arguments = [db]
-
 		new Settings(db, function( settings ) {
-
-			_arguments.push(settings)
 
 			new Users(db, function(users) {
 
-				_arguments.push(users)
-
 				new Collection(db, settings, function( collections ) {
-
-					_arguments.push(collections)
 
 					new VibeApi( settings, db, users, function( api ) {
 
-						_arguments.push(api)
+						// set instances as properties of the vibe object.
+						vibe.db = db
+						vibe.users = users
+						vibe.settings = settings
+						vibe.collections = collections
+						vibe.api = api
 
-						init.apply(vibe, _arguments)
+						// call init in the context of the vibe object.
+						init.call(vibe)
 					})
 				})
 			})
@@ -47,12 +45,53 @@ requirejs.config({
 	}
 })
 
-// VibeServer initialisation.
-function init( db, settings, users, collections, api ) {
+/**
+ * checks all collections are up to date every 5 minutes.
+ */
+vibe.updateCollections = function() {
+
+	var self = this
+
+	// don't check the collection whilst scanning is in progress.
+	if ( ! this.isScanning ) {
+
+		self.users.getCollectionModels(false, function( collections ) {
+
+			self.collections.update(collections)
+
+			setTimeout(self.updateCollections.bind(self), 300000)
+		})
+
+	} else {
+
+		setTimeout(self.updateCollections.bind(self), 300000)
+	}
+}
+
+/**
+ * initialises Vibe.
+ */
+function init() {
+
+	var self = this
+
+	global.vibe = vibe
+
+	// scan for .mp3, .aac, .m4a files.
+	this.settings.set('defaultMimeTypes', ['audio/mpeg', 'audio/aac', 'audio/mp4'])
+
+	// significantly slows down scanning.
+	this.settings.set('lastfm_albumart', true)
 
 	// check the collection is up to date every 5 minutes.
-	users.getCollectionModels(function(_collections) {
+	this.updateCollections()
 
-		collections.update(_collections)
+	// update the collecitons when a user is created.
+	this.users.on('user created', this.updateCollections.bind(this))
+
+	// when the scanning state changes set the isScanning property.
+	this.collections.on('scanning state changed', function(state) {
+
+		self.isScanning = state
 	})
 }

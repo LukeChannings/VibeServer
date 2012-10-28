@@ -1,24 +1,32 @@
-define(['walk', 'mime', 'async', 'crypto', 'node-ffprobe'], function( walk, mime, async, crypto, probe ) {
+define(['walk', 'mime', 'async', 'crypto', 'node-ffprobe', 'api.lastfm', 'events'], function( walk, mime, async, crypto, probe, lastfm, events ) {
 
 	var Model
 	  , Track
 	  , defaultMimeTypes = ["audio/mpeg"]
+	  , settings
 
 	/**
 	 * constructor.
-	 * @param db {Object} the database object.
+	 * @param db {Object} the database instance.
+	 * @param _settings {Object} the settings instance.
 	 * @param callback {Function} called when the instance is constructed.
 	 */
-	var Collection = function( db, settings, callback ) {
+	var Collection = function( db, _settings, callback ) {
 
-		Model = db.mongoose.model('Collection', db.Schemas.Collection, 'collections')
+		settings = _settings
 
-		Track = db.mongoose.model('Track', db.Schemas.Track, 'tracks')
+		Model = db.Model.Collection
+
+		Track = db.Model.Track
 
 		defaultMimeTypes = settings.get('defaultMimeTypes') || ["audio/mpeg"]
 
+		events.EventEmitter.call(this)
+
 		callback && callback(this)
 	}
+
+	Collection.prototype.__proto__ = events.EventEmitter.prototype
 
 	/**
 	 * creates a collection.
@@ -42,7 +50,6 @@ define(['walk', 'mime', 'async', 'crypto', 'node-ffprobe'], function( walk, mime
 
 			function(paths) {
 
-
 				paths.forEach(function(_path) {
 
 					collection.tracks.push(_path)
@@ -53,7 +60,6 @@ define(['walk', 'mime', 'async', 'crypto', 'node-ffprobe'], function( walk, mime
 			}
 		)
 	}
-
 	/**
 	 * walks a collection and returns a list of all audio files.
 	 * @param path {String} the path to the collection.
@@ -88,28 +94,29 @@ define(['walk', 'mime', 'async', 'crypto', 'node-ffprobe'], function( walk, mime
 	 */
 	Collection.prototype.scan = function(collection, tracks, updateExisting, callback) {
 
+		var self = this
+
+		self.emit('scanning state changed', true)
+
+		console.log("Scan called.")
+
 		async.forEachSeries(
 
 			tracks,
 
 			function(path, next) {
 
-				Track.find({path : path}, function(err, track) {
+				Track.findOne({path : path}, function(err, existingTrack) {
 
-					if ( track.length === 0 ) {
+					if ( ! existingTrack ) {
+
+						console.log("Scanning " + path)
 
 						probe(path, function(err, data) {
 
-							collection.find({'tracks.path' : path}, function(err, _path) {
-
-								if ( _path.length === 0 ) {
-
-									collection.tracks.push(path)
-								}
-							})
-
-							new Track({
-								  path : path
+							var track = new Track({
+								  collections : [collection._id]
+								, path : path
 								, title : data.metadata.title
 								, artist : data.metadata.artist
 								, albumArtist : data.metadata.album_artist
@@ -121,25 +128,62 @@ define(['walk', 'mime', 'async', 'crypto', 'node-ffprobe'], function( walk, mime
 								, bitRate : data.format.bit_rate
 								, duration : data.format.duration
 								, size : data.format.size
-							}).save(function(_err) {
-
-								if ( err || _err ) {
-									console.error(err || _err)
-								}
-
-								next()
 							})
+
+							if ( settings.get('lastfm_albumart') === true ) {
+
+								Track.findOne({artist : track.artist, album : track.album}, function(err, _track) {
+
+									if ( _track && _track.albumArt !== undefined ) {
+
+										track.albumArt = _track.albumArt
+
+										track.save(function() {
+
+											collection.tracks.push(track)
+
+											collection.save(next)
+										})
+
+									} else {
+
+										lastfm.getAlbumArt(track, function(err, track) {
+
+											track.save(function() {
+
+												collection.tracks.push(track)
+
+												collection.save(next)
+											})
+										})
+									}
+								})
+
+							} else {
+
+								track.save(function() {
+
+									collection.tracks.push(track)
+
+									collection.save(next)
+								})
+							}
 						})
 					} else {
 
-						console.log("track " + path + " already exists.")
+						console.log("Skipping " + path)
 
 						next()
 					}
 				})
 			},
 
-			callback
+			function() {
+
+				self.emit('scanning state changed', false)
+
+				collection.save(callback)
+			}
 		)
 	}
 
@@ -163,11 +207,11 @@ define(['walk', 'mime', 'async', 'crypto', 'node-ffprobe'], function( walk, mime
 
 			function( collection ) {
 
-				console.log("Walking " + collection[0].get('path'))
+				process.stdout.write("Checking " + collection.get('path') + "...\t")
 
 				self.walk(
 
-					collection[0].get('path'),
+					collection.get('path'),
 
 					defaultMimeTypes,
 
@@ -175,20 +219,19 @@ define(['walk', 'mime', 'async', 'crypto', 'node-ffprobe'], function( walk, mime
 
 						var checksum = crypto.createHash('sha256').update(files.join(':')).digest('hex')
 
-						if ( collection[0].get('checksum') === checksum ) {
+						if ( collection.get('checksum') === checksum ) {
 
-							console.log(collection[0].get('path') + ' is up-to-date.')
+							process.stdout.write("nothing to do, it's up-to-date.\r\n")
 
-							// do nothing.
 						} else {
 
-							console.log('scanning ' + collection[0].get('path'))
+							process.stdout.write("scanning...\r\n")
 
-							self.scan(collection[0], files, hardUpdate, function() {
+							self.scan(collection, files, hardUpdate, function() {
 
-								console.log("finished scanning.")
+								process.stdout.write("Finished scanning " + collection.get('path') + "\r\n")
 
-								collection[0].set('checksum', checksum).save()
+								collection.set('checksum', checksum).save()
 							})
 						}
 					}

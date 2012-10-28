@@ -24,7 +24,7 @@ define(function() {
 
 		var self = this
 
-		Setting = db.mongoose.model('Settings', db.Schemas.Setting, 'settings')
+		Setting = db.Model.Setting
 
 		Setting.find(function(err, result) {
 
