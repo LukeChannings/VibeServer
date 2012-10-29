@@ -90,9 +90,10 @@ define(['async'], function( async ) {
 
 	MetadataApi.prototype.getArtistsInGenre = function(genre, callback) {
 
-		db.Model.Album.find({"genre" : genre}, function(err, albums) {
+		var artists = []
+		  , genre = decodeURIComponent(genre)
 
-			var artists = []
+		db.Model.Album.find({"genre" : genre}, function(err, albums) {
 
 			for ( var i = 0; i < albums.length; i += 1 ) {
 
@@ -187,7 +188,7 @@ define(['async'], function( async ) {
 
 					db.Model.Album.findOne({_id : album._id}).populate("artist").populate("tracks").exec(function(err, album) {
 
-						albums.push(album.toObject())
+						albums.push(album)
 
 						next()
 					})
@@ -195,17 +196,81 @@ define(['async'], function( async ) {
 
 				function() {
 
+					albums.sort(function(a, b) {
+					
+						if (a.name.toLowerCase() < b.name.toLowerCase()) {
+							return -1
+						}
+						
+						if (a.name.toLowerCase() > b.name.toLowerCase()) {
+							return 1
+						}
+						
+						return 0
+					})
+
 					callback && callback(err, albums)
 				}
 			)
 		})
 	}
 
-	MetadataApi.prototype.getTracks = function() {}
+	MetadataApi.prototype.getTracksInGenre = function(genre, callback) {
 
-	MetadataApi.prototype.getTracksInGenre = function(genre, callback) {}
+		var tracks = []
+		  , genre = decodeURIComponent(genre)
 
-	MetadataApi.prototype.getTracksByArtist = function() {}
+		self.getArtistsInGenre(genre, function(err, artists) {
+
+			async.forEachSeries(
+
+				artists,
+
+				function(artist, next) {
+
+					self.getTracksByArtist(artist._id, function(err, _tracks) {
+
+						tracks = tracks.concat(_tracks)
+
+						next()
+					})
+				},
+
+				function() {
+
+					callback && callback(false, tracks)
+				}
+			)
+		})
+	}
+
+	MetadataApi.prototype.getTracksByArtist = function(_id, callback) {
+
+		var tracks = []
+
+		self.getAlbumsByArtist(_id, function(err, albums) {
+
+			async.forEachSeries(
+
+				albums,
+
+				function( album, next ) {
+
+					self.getTracksInAlbum(album._id, function(err, _tracks) {
+
+						tracks = tracks.concat(_tracks)
+
+						next()
+					})
+				},
+
+				function() {
+
+					callback(false, tracks)
+				}
+			)
+		})
+	}
 
 	MetadataApi.prototype.getTracksInAlbum = function(_id, callback) {
 
@@ -221,12 +286,13 @@ define(['async'], function( async ) {
 
 					db.Model.Track.findOne({_id : item}).populate("artist").populate("album").exec(function(err, track) {
 
-						callback(false, {
+						callback(err, {
 							  trackid : track._id
 							, albumname : track.album.name
 							, artistname : track.artist.name
 							, trackname : track.title
 							, trackno : track.track
+							, trackof : track.album.tracks.length
 							, tracklength : track.duration
 						})
 					})
@@ -252,7 +318,14 @@ define(['async'], function( async ) {
 
 				function(item, callback) {
 
-					db.Model.Track.findOne({_id : item}).select("_id title track").exec(callback)
+					db.Model.Track.findOne({_id : item}).select("_id title track").exec(function(err, track) {
+
+						callback(false, {
+							  id : track._id
+							, name : track.title
+							, trackno : track.track
+						})
+					})
 				},
 
 				function(err, tracks) {
@@ -263,7 +336,21 @@ define(['async'], function( async ) {
 		})
 	}
 
-	MetadataApi.prototype.getTrack = function() {}
+	MetadataApi.prototype.getTrack = function(_id, callback) {
+
+		db.Model.Track.findOne({_id : _id}).populate("artist").populate("album").exec(function(err, track) {
+
+			callback(err, {
+				  trackid : track._id
+				, albumname : track.album.name
+				, artistname : track.artist.name
+				, trackname : track.title
+				, trackno : track.track
+				, trackof : track.album.tracks.length
+				, tracklength : track.duration
+			})
+		})
+	}
 
 	MetadataApi.prototype.getGenres = function( callback ) {
 
@@ -321,8 +408,6 @@ define(['async'], function( async ) {
 	}
 
 	MetadataApi.prototype.search = function() {}
-
-	MetadataApi.prototype.getMethod = function() {}
 
 	return MetadataApi
 })
