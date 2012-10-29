@@ -240,7 +240,7 @@ asyncTest("user event - delete user", function() {
 
 asyncTest("metadata - get genres", function() {
 
-	expect(1)
+	expect(3)
 
 	var socket = io.connect("http://localhost:6232?u=" + this.user + "&c=" + this.auth + "&tk=" + this.token, {
 		'force new connection' : true
@@ -248,7 +248,7 @@ asyncTest("metadata - get genres", function() {
 
 	socket.on('error', function(err) {
 
-		ok(false, "Error event was emitted.")
+		ok(false, "error event was emitted.")
 
 		console.log(err)
 
@@ -257,14 +257,79 @@ asyncTest("metadata - get genres", function() {
 
 	socket.on('connect', function() {
 
-		ok(true, "Connect event was emitted.")
+		ok(true, "connect event was emitted.")
 
 		socket.emit('metadata', 'getGenres', function(err, genres) {
 
-			console.log(err)
-			console.log(genres)
+			ok(!err, "no error occurred.")
+
+			ok(genres instanceof Array, "genres were returned.")
+
+			start()
 		})
+	})
+})
+
+asyncTest("metadata - get artists", function() {
+
+	expect(3)
+
+	var socket = io.connect("http://localhost:6232?u=" + this.user + "&c=" + this.auth + "&tk=" + this.token, {
+		'force new connection' : true
+	})
+
+	socket.on('error', function(err) {
+
+		ok(false, "error event was emitted.")
+
+		console.log(err)
 
 		start()
+	})
+
+	socket.on('connect', function() {
+
+		ok(true, "connect event was emitted.")
+
+		socket.emit('metadata', 'getArtists', function(err, artists) {
+
+			ok(!err, "no error occurred.")
+
+			ok(artists instanceof Array, "artists were returned.")
+
+			start()
+		})
+	})
+})
+
+asyncTest("metadata - get albums", function() {
+
+	expect(3)
+
+	var socket = io.connect("http://localhost:6232?u=" + this.user + "&c=" + this.auth + "&tk=" + this.token, {
+		'force new connection' : true
+	})
+
+	socket.on('error', function(err) {
+
+		ok(false, "error event was emitted.")
+
+		console.log(err)
+
+		start()
+	})
+
+	socket.on('connect', function() {
+
+		ok(true, "connect event was emitted.")
+
+		socket.emit('metadata', 'getAlbums', function(err, albums) {
+
+			ok(!err, "no error occurred.")
+
+			ok(albums instanceof Array, "albums were returned.")
+
+			start()
+		})
 	})
 })

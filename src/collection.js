@@ -1,7 +1,6 @@
 define(['walk', 'mime', 'async', 'crypto', 'node-ffprobe', 'api.lastfm', 'events'], function( walk, mime, async, crypto, probe, lastfm, events ) {
 
-	var Model
-	  , Track
+	var db
 	  , defaultMimeTypes = ["audio/mpeg"]
 	  , settings
 
@@ -11,14 +10,10 @@ define(['walk', 'mime', 'async', 'crypto', 'node-ffprobe', 'api.lastfm', 'events
 	 * @param _settings {Object} the settings instance.
 	 * @param callback {Function} called when the instance is constructed.
 	 */
-	var Collection = function( db, _settings, callback ) {
+	var Collection = function( _db, _settings, callback ) {
 
 		settings = _settings
-
-		Model = db.Model.Collection
-
-		Track = db.Model.Track
-
+		db = _db
 		defaultMimeTypes = settings.get('defaultMimeTypes') || ["audio/mpeg"]
 
 		events.EventEmitter.call(this)
@@ -37,7 +32,7 @@ define(['walk', 'mime', 'async', 'crypto', 'node-ffprobe', 'api.lastfm', 'events
 
 		var self = this
 
-		var collection = new Model({
+		var collection = new db.Model.Collection({
 			  path : path
 			, mimeTypes : _mimeTypes || defaultMimeTypes
 		})
@@ -98,77 +93,57 @@ define(['walk', 'mime', 'async', 'crypto', 'node-ffprobe', 'api.lastfm', 'events
 
 		self.emit('scanning state changed', true)
 
-		console.log("Scan called.")
-
 		async.forEachSeries(
 
 			tracks,
 
 			function(path, next) {
 
-				Track.findOne({path : path}, function(err, existingTrack) {
+				db.Model.Track.findOne({path : path}, function(err, existingTrack) {
 
 					if ( ! existingTrack ) {
 
 						console.log("Scanning " + path)
 
+						// get the metadata.
 						probe(path, function(err, data) {
 
-							var track = new Track({
-								  collections : [collection._id]
-								, path : path
-								, title : data.metadata.title
-								, artist : data.metadata.artist
-								, albumArtist : data.metadata.album_artist
-								, album : data.metadata.album
-								, track : data.metadata.track
-								, genre : data.metadata.genre
-								, year : data.metadata.date
-								, mime : mime.lookup(path)
-								, bitRate : data.format.bit_rate
-								, duration : data.format.duration
-								, size : data.format.size
-							})
+							if ( ! data.metadata.artist ) {
 
-							if ( settings.get('lastfm_albumart') === true ) {
+								next()
 
-								Track.findOne({artist : track.artist, album : track.album}, function(err, _track) {
-
-									if ( _track && _track.albumArt !== undefined ) {
-
-										track.albumArt = _track.albumArt
-
-										track.save(function() {
-
-											collection.tracks.push(track)
-
-											collection.save(next)
-										})
-
-									} else {
-
-										lastfm.getAlbumArt(track, function(err, track) {
-
-											track.save(function() {
-
-												collection.tracks.push(track)
-
-												collection.save(next)
-											})
-										})
-									}
-								})
-
-							} else {
-
-								track.save(function() {
-
-									collection.tracks.push(track)
-
-									collection.save(next)
-								})
+								return;
 							}
+
+							// get the artist.
+							createArtist(data, collection, function(err, artist) {
+
+								// get the album.
+								createAlbum(data, artist, collection, settings.get('lastfm_albumart'), function(err, album) {
+
+									// get the track.
+									createTrack(path, data, artist, album, collection, function(err, track) {
+
+										save(artist, album, track, collection)
+									})
+								})
+							})
 						})
+
+						// saves the models.
+						function save(artist, album, track, collection) {
+
+							artist.save(function(err) {
+
+								album.save(function(err) {
+
+									track.save(function(err) {
+
+										collection.save(next)
+									})
+								})
+							})
+						}
 					} else {
 
 						console.log("Skipping " + path)
@@ -238,6 +213,99 @@ define(['walk', 'mime', 'async', 'crypto', 'node-ffprobe', 'api.lastfm', 'events
 				)
 			}
 		)
+	}
+
+	/**
+	 * creates an artist document.
+	 * @param data {Object} metadata object returned by node-ffprobe.
+	 * @param collection {Document} the collection document.
+	 * @param callback {Function} calls back with err {String} and artist {Document}
+	 */
+	function createArtist(data, collection, callback) {
+
+		db.Model.Artist.findOne({name : data.metadata.artist}, function(err, artist) {
+
+			if ( ! artist ) {
+
+				artist = new db.Model.Artist({
+					  _collections : [collection._id]
+					, name : data.metadata.artist
+				})
+			}
+
+			callback(err, artist)
+		})
+	}
+
+	/**
+	 * creates an album document.
+	 * @param data {Object} metadata object returned by node-ffprobe.
+	 * @param artist {Document} the artist document.
+	 * @param colleciton {Document} the colleciton document.
+	 * @param getAlbumArt {Boolean} if true lastfm album art will be looked up.
+	 * @param callback {Function} calls back with err {String} and album {Document}
+	 */
+	function createAlbum(data, artist, collection, getAlbumArt, callback) {
+
+		db.Model.Album.findOne({name : data.metadata.album, artist : artist._id}, function(err, album) {
+
+			if ( ! album ) {
+
+				album = new db.Model.Album({
+					  _collections : [collection._id]
+					, artist : artist._id
+					, name : data.metadata.album
+					, genre : data.metadata.genre
+					, year : data.metadata.date
+				})
+
+				artist.albums.push(album)
+
+				if ( getAlbumArt ) {
+
+					lastfm.getAlbumArt({artist : artist.name, album : album.name}, function(err, metadata) {
+
+						album.art = metadata.albumArt
+
+						callback(err, album)
+					})
+				}
+			} else {
+
+				callback(err, album)
+			}
+		})
+	}
+
+	/**
+	 * creates a track document.
+	 * @param path {String} the path to the track.
+	 * @param data {Object} metadata object returned by node-ffprobe.
+	 * @param artist {Document} the artist document.
+	 * @param album {Document} the album document.
+	 * @param collection {Document} the collection document.
+	 * @param callback {Function} calls back with err {String} and track {Document}
+	 */
+	function createTrack(path, data, artist, album, collection, callback) {
+
+		var track = new db.Model.Track({
+			  _collections : [collection._id]
+			, title : data.metadata.title
+			, artist : artist._id
+			, album : album._id
+			, track : data.metadata.track
+			, mime : mime.lookup(path)
+			, bitRate : data.format.bit_rate
+			, duration : data.format.duration
+			, size : data.format.size
+			, path : path
+		})
+
+		album.tracks.push(track)
+
+		collection.tracks.push(track)
+
+		callback && callback(false, track)
 	}
 
 	return Collection

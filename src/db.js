@@ -28,20 +28,33 @@ define(['mongoose'], function( mongoose ) {
 	}
 
 	// schemas.
+
+	var albumSchema = new Schema({
+		  _collections : [{type : ObjectId, ref : 'Collection'}]
+		, name : { type : String, default : "Unknown Album" }
+		, artist : { type : ObjectId, ref : 'Artist' }
+		, genre : String
+		, art : {}
+		, year : Number
+		, tracks : [{type : ObjectId, ref : 'Track'}]
+	}, { collection : "albums" })
+
+	var artistSchema = new Schema({
+		  _collections : [{type : ObjectId, ref : 'Collection'}]
+		, name : String
+		, albums : [{type : ObjectId, ref : 'Album'}]
+	}, { collection : "artists" })
+
 	var trackSchema = new Schema({
 		  _collections : [{type : ObjectId, ref : 'Collection'}]
 		, title : { type : String, default : "Unknown Title" }
-		, artist : { type : String, default : "Unknown Artist" }
-		, album : { type : String, default : "Unknown Album" }
-		, albumArtist : { type : String, default : "Unknown Artist" }
+		, artist : { type : ObjectId, ref : 'Artist' }
+		, album : { type : ObjectId, ref : 'Album' }
 		, track : { type : Number, default : 0, set : numberOfToNumber }
-		, genre : String
-		, year : { type : Number, default : 0, set : numberOfToNumber }
 		, mime : String
 		, bitRate : Number
 		, duration : Number
 		, size : Number
-		, albumArt : {}
 		, path : String
 	}, {
 		collection : "tracks"
@@ -83,6 +96,8 @@ define(['mongoose'], function( mongoose ) {
 
 	// models.
 	var Track = mongoose.model('Track', trackSchema)
+	  , Album = mongoose.model('Album', albumSchema)
+	  , Artist = mongoose.model('Artist', artistSchema)
 	  , Playlist = mongoose.model('Playlist', playlistSchema)
 	  , Collection = mongoose.model('Collection', collectionSchema)
 	  , User = mongoose.model('User', userSchema)
@@ -92,6 +107,8 @@ define(['mongoose'], function( mongoose ) {
 		  mongoose : mongoose
 		, Model : {
 			  Track : Track
+			, Album : Album
+			, Artist : Artist
 			, Playlist : Playlist
 			, Collection : Collection
 			, User : User
@@ -99,6 +116,8 @@ define(['mongoose'], function( mongoose ) {
 		}
 		, Schema : {
 			  Track : trackSchema
+			, Album : albumSchema
+			, Artist : artistSchema
 			, Playlist : playlistSchema
 			, Collection : collectionSchema
 			, User : userSchema

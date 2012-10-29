@@ -1,7 +1,15 @@
 /**
  * Vibe Api and HTTP music streaming server.
  */
-define(['http', 'socket.io', 'crypto', 'api.metadata'], function( http, socketio, crypto, MetadataApi ) {
+define(function() {
+
+	// dependencies.
+	var http = require('http')
+	  , fs = require('fs')
+	  , crypto = require('crypto')
+	  , socketio = require('socket.io')
+	  , stream = require('stream')
+	  , MetadataApi = require('api.metadata')
 
 	return function( settings, db, users, callback ) {
 
@@ -122,6 +130,32 @@ define(['http', 'socket.io', 'crypto', 'api.metadata'], function( http, socketio
 				res.setHeader("Access-Control-Allow-Origin", "*")
 
 				res.end(token)
+			}
+
+			// handle streaming.
+			if ( /\/stream\/.+/.test(req.url) ) {
+
+				stream(req, res, db.Model.Track)
+			}
+
+			// retrieve flash crossdomain file.
+			// - used to allow soundmanager2's flash to load.
+			if ( /crossdomain\.xml$/.test(req.url) ) {
+				
+				res.setHeader("Access-Control-Allow-Origin", "*")
+
+				fs.readFile('crossdomain.xml', function(err, data) {
+				
+					if ( err ) {
+
+						res.statusCode = 404
+					} else {
+
+						res.statusCode = 200
+					}
+
+					res.end(data)
+				})
 			}
 		})
 

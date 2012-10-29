@@ -182,16 +182,43 @@ define(['async', 'crypto', 'events'], function( async, crypto, events ) {
 
 		var query = user ? { name : user } : {}
 
-		User.find(query).populate("collections").exec(function(err, users) {
+		User.find(query).exec(function(err, users) {
 
-			users.forEach(function(_user) {
+			async.forEachSeries(
 
-				console.log(collections)
+				users,
 
-				collections = collections.concat(_user.collections)
-			})
+				function(user, next) {
 
-			callback && callback(collections)
+					async.forEachSeries(
+
+						user.collections,
+
+						function(id, _next) {
+
+							Collection.findOne({_id : id}).exec(function(err, collection) {
+
+								if ( collection ) {
+
+									collections.push(collection)
+								}
+
+								_next()
+							})
+						},
+
+						function() {
+
+							next()
+						}
+					)
+				},
+
+				function() {
+
+					callback && callback(collections)
+				}
+			)
 		})
 	}
 

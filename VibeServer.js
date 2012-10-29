@@ -14,8 +14,8 @@ requirejs.config({
 	, baseUrl: __dirname + '/src'
 	, deps : [
 		  'db'
-		, 'db.settings'
-		, 'db.users'
+		, 'settings'
+		, 'user'
 		, 'collection'
 		, 'api.vibe'
 	]
