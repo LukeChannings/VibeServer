@@ -14,5 +14,6 @@
 		, "node-ffprobe" : ">= 1.2.0"
 		, "socket.io" : ">= 0.9.10"
 		, "mongoose" : ">= 3.3.1"
+		, "async" : ">= 0.1.22"
 	}
 }

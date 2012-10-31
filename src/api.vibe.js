@@ -38,11 +38,11 @@ define(function() {
 				return
 			}
 
-			var user = handshakeData.query.u
-			  , token = handshakeData.query.tk
+			var user = decodeURIComponent(handshakeData.query.u)
+			  , token = decodeURIComponent(handshakeData.query.tk)
 			  , _token = new Buffer(handshakeData.address.address).toString('base64')
 			  , auth = crypto.createHash('sha256').update(user + _token).digest('hex')
-			  , c = handshakeData.query.c
+			  , c = decodeURIComponent(handshakeData.query.c)
 
 
 			// check the tokens match.
@@ -81,10 +81,23 @@ define(function() {
 
 			socketIOClients.push(socket)
 
+			socket.handshakeData = socket.manager.handshaken[socket.id]
+
 			socket.on('disconnect', function() {
 
 				// remove the socket.
 				socketIOClients.splice(socketIOClients.indexOf(socket), 1)
+
+				if ( socket.handshakeData.query.role === "player" ) {
+
+					socketIOClients.forEach(function(_socket) {
+
+						if ( _socket.handshakeData.query.role === "controller" ) {
+
+							_socket.emit("playerDisconnected", socket.id)
+						}
+					})
+				}
 			})
 
 			if ( users.length() === 0 ) {
@@ -109,13 +122,86 @@ define(function() {
 				})
 			} else {
 
+				if ( socket.handshakeData.query.role === "player" ) {
+
+					// bind users responder.
+					socket.on('user', users.eventResponder.bind(users))
+
+					// bind metadata api.
+					socket.on('metadata', metadataApi.eventResponder.bind(socket))
+
+					socket.on("playstatechanged", function(state, trackid) {
+
+						db.Model.Track.findOne({_id : trackid}).populate("album").populate("artist").exec(function(err, track) {
+
+							socketIOClients.forEach(function(_socket) {
+
+								if ( _socket.handshakeData.query.role === "controller" ) {
+
+									_socket.emit("playerStateChange", socket.id, state, track)
+								}
+							})
+						})
+					})
+				}
+
+				if ( socket.handshakeData.query.role === "controller" ) {
+
+					socket.on("getPlayerIds", function(callback) {
+
+						var ids = []
+
+						socketIOClients.forEach(function(socket) {
+
+							if ( socket.handshakeData.query.role === "player" ) {
+
+								ids.push(socket.id)
+							}
+						})
+
+						callback(ids)
+					})
+
+					socket.on("relayMessage", function(id) {
+
+						var socket = null
+
+						for ( var i = 0; i < socketIOClients.length; i += 1 ) {
+
+							if ( socketIOClients[i].id === id ) {
+
+								socket = socketIOClients[i]
+							}
+						}
+
+						if ( socket ) {
+
+							var _arguments = Array.prototype.slice.call(arguments, 1)
+
+							_arguments.unshift('externalEvent')
+
+							socket.emit.apply(socket, _arguments)
+
+						} else {
+
+							callback && callback(false)
+						}
+
+					})
+				}
+
 				socket.emit('ready')
+			}
 
-				// bind users responder.
-				socket.on('user', users.eventResponder.bind(users))
+			if ( socket.handshakeData.query.role === "player" ) {
 
-				// bind metadata api.
-				socket.on('metadata', metadataApi.eventResponder.bind(socket))
+				socketIOClients.forEach(function(_socket) {
+
+					if ( _socket.handshakeData.query.role === "controller" ) {
+
+						_socket.emit("playerConnected", socket.id)
+					}
+				})
 			}
 		})
 
