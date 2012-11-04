@@ -14,7 +14,7 @@ define(['walk', 'mime', 'async', 'crypto', 'node-ffprobe', 'api.lastfm', 'events
 
 		settings = _settings
 		db = _db
-		defaultMimeTypes = settings.get('defaultMimeTypes') || ["audio/mpeg"]
+		defaultMimeTypes = ['audio/mpeg', 'audio/aac', 'audio/mp4']
 
 		events.EventEmitter.call(this)
 

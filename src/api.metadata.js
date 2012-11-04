@@ -294,6 +294,7 @@ define(['async'], function( async ) {
 							, trackno : track.track
 							, trackof : track.album.tracks.length
 							, tracklength : track.duration
+							, mime : track.mime
 						})
 					})
 				},
@@ -348,6 +349,7 @@ define(['async'], function( async ) {
 				, trackno : track.track
 				, trackof : track.album.tracks.length
 				, tracklength : track.duration
+				, mime : track.mime
 			})
 		})
 	}

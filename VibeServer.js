@@ -77,9 +77,6 @@ function init() {
 
 	global.vibe = vibe
 
-	// scan for .mp3, .aac, .m4a files.
-	this.settings.set('defaultMimeTypes', ['audio/mpeg', 'audio/aac', 'audio/mp4'])
-
 	// significantly slows down scanning.
 	this.settings.set('lastfm_albumart', true)
 

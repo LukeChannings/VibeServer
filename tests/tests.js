@@ -3,7 +3,7 @@ module("Vibe Server Api tests.", {
 
 		this.user = "Luke"
 		this.password = "toor"
-		this.token = "MTI3LjAuMC4x"
+		this.token = "MTkyLjE2OC4wLjk5"
 		this._auth = Sha256.hash(this.user + this.password)
 		this.auth = Sha256.hash(Sha256.hash(this.user + this.token) + this._auth)
 	}
@@ -13,7 +13,7 @@ asyncTest("authentication - no login parameters.", function() {
 
 	expect(1)
 
-	var socket = io.connect("http://localhost:6232", {
+	var socket = io.connect("http://192.168.0.196:6232", {
 		'force new connection' : true
 	})
 
@@ -33,7 +33,7 @@ asyncTest("authentication - no login parameters.", function() {
 			callback({
 				name : "Luke",
 				password : "toor",
-				collections : ["/Volumes/Media/Music"]
+				collections : ["E:\\Users\\lchannings\\Music\\iTunes"]
 			}, function() {
 
 				console.log("Set up new user.")
