@@ -243,6 +243,35 @@ define(function() {
 					res.end(data)
 				})
 			}
+
+			// serve soundmanager2's swf.
+			if ( /soundmanager2.*$/.test(req.url) ) {
+
+				res.setHeader("Access-Control-Allow-Origin", "*")
+
+				var file = req.url.match(/(soundmanager2.*)$/)
+
+				if ( file.length === 0 ) {
+
+					res.statusCode = 404
+
+					res.end()
+				} else {
+
+					fs.readFile('lib/' + file[1], function(err, data) {
+					
+						if ( err ) {
+
+							res.statusCode = 404
+						} else {
+
+							res.statusCode = 200
+						}
+
+						res.end(data)
+					})
+				}
+			}
 		})
 
 		callback && callback(this)

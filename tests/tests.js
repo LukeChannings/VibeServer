@@ -9,6 +9,38 @@ module("Vibe Server Api tests.", {
 	}
 })
 
+asyncTest("server setup", function() {
+
+	var socket = io.connect("http://localhost:6232", {'force new connection' : true})
+	  , setupData : {
+			name : "Name",
+			password : "Password",
+			collections : ["C:\\Users\\YourUserName\\Music"]
+		}
+
+	socket.on('error', function() {
+
+		ok(false, "user was not set up.")
+
+		start()
+	})
+
+	socket.on('connect', function() {
+
+		socket.on('setup', function(callback) {
+
+			callback(setupData, function() {
+
+				console.log("User is set up.")
+			})
+
+			ok(true, "user was set up.")
+
+			start()
+		})
+	})
+})
+
 asyncTest("authentication - no login parameters.", function() {
 
 	expect(1)
@@ -27,18 +59,6 @@ asyncTest("authentication - no login parameters.", function() {
 	socket.on('connect', function() {
 
 		ok(false, "Connect event was emitted.")
-
-		socket.on('setup', function(callback) {
-
-			callback({
-				name : "Luke",
-				password : "toor",
-				collections : ["E:\\Users\\lchannings\\Music\\iTunes"]
-			}, function() {
-
-				console.log("Set up new user.")
-			})
-		})
 
 		start()
 	})
