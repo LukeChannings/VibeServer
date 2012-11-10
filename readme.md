@@ -15,5 +15,5 @@ Basic Vibe configuration is set through the __settings.json__ file, which includ
 1. Find a way to determine track duration. --DONE--
 2. Implement HTTP 206 Partial Content for streaming. --DONE--
 3. Implement directory watching.
-4. Test cross-platform. (Only tested on OS X presently.)
-5. Add authentication options for socket.io and streaming.
+4. Test cross-platform. (Only tested on OS X presently.) --DONE--
+5. Add authentication options for socket.io and streaming. --DONE--
