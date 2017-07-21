@@ -1,4 +1,5 @@
-#Vibe Server
+# Vibe Server
+
 
 This daemon will run on the computer with the music with the purpose of serving the music to a Vibe client. The daemon provides two key features to the client through an API: a) Getting collection data, e.g. Artists, Albums, Genres, etc. as well as more complicated queries, b) A stream of the audio file in its original format, without transcoding. (The method of playing is left up to the client, MM2 is probably the best choice.)
 
@@ -6,11 +7,16 @@ The daemon will scan the following formats: _MP3_, _OGG_, _WAV_, _AAC_, _M4A_. T
 
 Streaming can be accessed through __http://host:port/stream/:hash__, where :hash is the id of the track to be streamed. (The id is found using the API.)
 
-##Configuration
+## Docker
+
+    docker build -t vibe-server .
+    docker run -d --rm -v ~/Music:/music -p 6232:6232 vibe-server
+
+## Configuration
 
 Basic Vibe configuration is set through the __settings.json__ file, which includes two basic settings: the collection path, (where your music is located,) and the port (which the daemon will listen on.)
 
-##Todo before v1.0
+## Todo before v1.0
 
 1. Find a way to determine track duration. --DONE--
 2. Implement HTTP 206 Partial Content for streaming. --DONE--
