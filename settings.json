@@ -1,6 +1,6 @@
 {
-	"collection_path": "/Volumes/Media/Music",
+	"collection_path": "/music",
 	"port": 6232,
-	"postscan_epoch": 1350505240179,
+  "postscan_epoch": 1350505240179,
 	"collection_checksum": "1288308ade4371348f35153c5244034f"
 }
