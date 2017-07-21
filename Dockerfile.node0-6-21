@@ -1,0 +1,16 @@
+FROM ubuntu-precise
+
+RUN mkdir -p /usr/src/node
+WORKDIR /usr/src/node
+
+RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get -y update --fix-missing
+RUN apt-get -y install build-essential linux-headers-generic openssl libssl-dev ca-certificates
+
+ADD https://nodejs.org/download/release/v0.6.21/node-v0.6.21.tar.gz .
+
+WORKDIR /usr/src/node/node-v0.6.21
+
+RUN ./configure --prefix=/usr/local
+RUN make
+RUN make install
